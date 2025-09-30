@@ -18,6 +18,7 @@ from typing import (
 	Tuple,
 )
 from uuid import uuid4
+from winBindings import crypt32
 
 import garbageHandler
 import globalVars
@@ -29,9 +30,9 @@ if globalVars.appArgs.secure:
 	raise RuntimeError("updates disabled in secure mode")
 elif config.isAppX:
 	raise RuntimeError("updates managed by Windows Store")
-import versionInfo
+import buildVersion
 
-if not versionInfo.updateVersionType:
+if not buildVersion.updateVersionType:
 	raise RuntimeError("No update version type, update checking not supported")
 # Avoid a E402 'module level import not at top of file' warning, because several checks are performed above.
 import gui.contextHelp  # noqa: E402
@@ -59,7 +60,7 @@ import synthDriverHandler  # noqa: E402
 import braille
 import gui
 from gui import guiHelper
-from gui.message import displayDialogAsModal  # noqa: E402
+from gui.message import DialogType, MessageDialog, ReturnCode, displayDialogAsModal  # noqa: E402
 from addonHandler import getCodeAddon, AddonError, getIncompatibleAddons
 from addonStore.models.version import (  # noqa: E402
 	getAddonCompatibilityMessage,
@@ -70,6 +71,13 @@ from logHandler import log, isPathExternalToNVDA
 import winKernel
 from utils.tempFile import _createEmptyTempFileForDeletingFile
 from dataclasses import dataclass
+
+from utils import _deprecate
+
+__getattr__ = _deprecate.handleDeprecations(
+	_deprecate.MovedSymbol("CERT_USAGE_MATCH", "winBindings.crypt32"),
+	_deprecate.MovedSymbol("CERT_CHAIN_PARA", "winBindings.crypt32"),
+)
 
 
 #: The URL to use for update checks.
@@ -201,8 +209,8 @@ def checkForUpdate(auto: bool = False) -> UpdateInfo | None:
 	params = {
 		"autoCheck": auto,
 		"allowUsageStats": allowUsageStats,
-		"version": versionInfo.version,
-		"versionType": versionInfo.updateVersionType,
+		"version": buildVersion.version,
+		"versionType": buildVersion.updateVersionType,
 		"osVersion": winVersionText,
 		# Check if the architecture is the most common: "AMD64"
 		# Available values of PROCESSOR_ARCHITEW6432 found in:
@@ -587,6 +595,8 @@ class UpdateResultDialog(
 		self.Show()
 
 	def onUpdateButton(self, destPath):
+		if not _warnAndConfirmIfUpdatingRemotely():
+			return
 		_executeUpdate(destPath)
 		self.Destroy()
 
@@ -759,6 +769,8 @@ class UpdateAskInstallDialog(
 		return callback
 
 	def onUpdateButton(self, evt):
+		if not _warnAndConfirmIfUpdatingRemotely():
+			return
 		self.EndModal(wx.ID_OK)
 
 	def onPostponeButton(self, evt):
@@ -989,6 +1001,39 @@ def saveState():
 		log.debugWarning("Error saving state", exc_info=True)
 
 
+def _warnAndConfirmIfUpdatingRemotely() -> bool:
+	# Import late to avoid circular import
+	from _remoteClient import _remoteClient
+
+	if _remoteClient is not None and _remoteClient.isConnectedAsFollower:
+		confirmationDialog = (
+			MessageDialog(
+				gui.mainFrame,
+				_(
+					# Translators: Message shown to users when attempting to update NVDA
+					# on a computer which is being remotely controlled via NVDA Remote Access
+					"Updating NVDA when connected to NVDA Remote Access as the controlled computer is not recommended. ",
+				)
+				+ _(
+					# Translators: Message shown to users when attempting to update NVDA from an installed copy
+					# on a computer which is being remotely controlled via NVDA Remote Access.
+					"The currently active connection may not be continued during or after the update. "
+					"Even if the connection is continued, you will be unable to respond to User Account Control (UAC) prompts from the controlling computer. "
+					"You should only proceed if you have physical access to the controlled computer.\n\n"
+					"Are you sure you want to continue?",
+				),
+				# Translators: The title of a dialog.
+				_("Warning"),
+				DialogType.WARNING,
+				buttons=None,
+			)
+			.addNoButton(defaultFocus=True, fallbackAction=True)
+			.addYesButton()
+		)
+		return confirmationDialog.ShowModal() == ReturnCode.YES
+	return True
+
+
 def initialize():
 	global state, autoChecker
 	try:
@@ -1013,7 +1058,7 @@ def initialize():
 
 	# check the pending version against the current version
 	# and make sure that pendingUpdateFile and pendingUpdateVersion are part of the state dictionary.
-	if "pendingUpdateVersion" not in state or state["pendingUpdateVersion"] == versionInfo.version:
+	if "pendingUpdateVersion" not in state or state["pendingUpdateVersion"] == buildVersion.version:
 		_setStateToNone(state)
 	# remove all update files except the one that is currently pending (if any)
 	try:
@@ -1040,33 +1085,8 @@ def terminate():
 		autoChecker = None
 
 
-# These structs are only complete enough to achieve what we need.
-class CERT_USAGE_MATCH(ctypes.Structure):
-	_fields_ = (
-		("dwType", ctypes.wintypes.DWORD),
-		# CERT_ENHKEY_USAGE struct
-		("cUsageIdentifier", ctypes.wintypes.DWORD),
-		("rgpszUsageIdentifier", ctypes.c_void_p),  # LPSTR *
-	)
-
-
-class CERT_CHAIN_PARA(ctypes.Structure):
-	_fields_ = (
-		("cbSize", ctypes.wintypes.DWORD),
-		("RequestedUsage", CERT_USAGE_MATCH),
-		("RequestedIssuancePolicy", CERT_USAGE_MATCH),
-		("dwUrlRetrievalTimeout", ctypes.wintypes.DWORD),
-		("fCheckRevocationFreshnessTime", ctypes.wintypes.BOOL),
-		("dwRevocationFreshnessTime", ctypes.wintypes.DWORD),
-		("pftCacheResync", ctypes.c_void_p),  # LPFILETIME
-		("pStrongSignPara", ctypes.c_void_p),  # PCCERT_STRONG_SIGN_PARA
-		("dwStrongSignFlags", ctypes.wintypes.DWORD),
-	)
-
-
 def _updateWindowsRootCertificates():
 	log.debug("Updating Windows root certificates")
-	crypt = ctypes.windll.crypt32
 	with requests.get(
 		# We must specify versionType so the server doesn't return a 404 error and
 		# thus cause an exception.
@@ -1079,27 +1099,27 @@ def _updateWindowsRootCertificates():
 		# Get the server certificate.
 		cert = response.raw.connection.sock.getpeercert(True)
 	# Convert to a form usable by Windows.
-	certCont = crypt.CertCreateCertificateContext(
+	certCont = crypt32.CertCreateCertificateContext(
 		0x00000001,  # X509_ASN_ENCODING
 		cert,
 		len(cert),
 	)
 	# Ask Windows to build a certificate chain, thus triggering a root certificate update.
 	chainCont = ctypes.c_void_p()
-	crypt.CertGetCertificateChain(
+	crypt32.CertGetCertificateChain(
 		None,
 		certCont,
 		None,
 		None,
 		ctypes.byref(
-			CERT_CHAIN_PARA(
-				cbSize=ctypes.sizeof(CERT_CHAIN_PARA),
-				RequestedUsage=CERT_USAGE_MATCH(),
+			crypt32.CERT_CHAIN_PARA(
+				cbSize=ctypes.sizeof(crypt32.CERT_CHAIN_PARA),
+				RequestedUsage=crypt32.CERT_USAGE_MATCH(),
 			),
 		),
 		0,
 		None,
 		ctypes.byref(chainCont),
 	)
-	crypt.CertFreeCertificateChain(chainCont)
-	crypt.CertFreeCertificateContext(certCont)
+	crypt32.CertFreeCertificateChain(chainCont)
+	crypt32.CertFreeCertificateContext(certCont)
