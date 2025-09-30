@@ -11,7 +11,6 @@ import UIAHandler.constants
 from UIAHandler.constants import (
 	UIAutomationType,
 )
-import braille
 import speech
 import api
 import colors
@@ -568,12 +567,6 @@ class ExcelWorksheet(ExcelObject):
 
 class CellEdit(ExcelObject):
 	name = ""
-
-	def event_typedCharacter(self, ch: str):
-		# this control does not fire text change events.
-		# Therefore, we need to update braille manually when typing characters.
-		braille.handler.handleCaretMove(self)
-		super().event_typedCharacter(ch)
 
 
 class BadExcelFormulaEdit(ExcelObject):

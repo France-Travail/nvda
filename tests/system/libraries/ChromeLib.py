@@ -123,7 +123,7 @@ class ChromeLib:
 		titlePattern = self.getUniqueTestCaseTitleRegex(testCase)
 		success, ChromeLib._chromeWindow = _blockUntilConditionMet(
 			getValue=lambda: GetWindowWithTitle(titlePattern, lambda message: builtIn.log(message, "DEBUG")),
-			giveUpAfterSeconds=10,  # Chrome has been taking ~3 seconds to open a new tab.
+			giveUpAfterSeconds=10,  # Chrome has been taking ~3 seconds to open a new tab on appveyor.
 			shouldStopEvaluator=lambda _window: _window is not None,
 			intervalBetweenSeconds=0.5,
 			errorMessage="Unable to get chrome window",

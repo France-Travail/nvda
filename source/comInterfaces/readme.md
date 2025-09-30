@@ -1,5 +1,3 @@
-# COM Interfaces
-
 The comInterfaces package is generated via SCons.
 The logic for this is in `comInterfaces_sconscript`, which uses `comtypes.gen` to read `*.tlb`
 files or via interface IDs.

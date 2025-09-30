@@ -4,16 +4,14 @@
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
-from __future__ import annotations
 import abc
 import ctypes
 import enum
-from winBindings import user32
-import winBindings.gdi32
-
-from typing import Any
-from collections.abc import Callable
-import warnings
+from typing import (
+	Any,
+	Dict,
+	Optional,
+)
 
 from comtypes import COMError, BSTR
 import comtypes.automation
@@ -45,7 +43,6 @@ import mouseHandler
 from displayModel import DisplayModelTextInfo
 import controlTypes
 from controlTypes import TextPosition, TextAlign, VerticalTextAlign
-from NVDAHelper.localLib import EXCEL_CELLINFO
 from . import Window
 from .. import NVDAObjectTextInfo
 import scriptHandler
@@ -56,10 +53,6 @@ from utils.displayString import DisplayStringIntEnum
 import NVDAState
 from globalCommands import SCRCAT_SYSTEMCARET
 from ._msOffice import MsoHyperlink
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-	from ._msOfficeChart import OfficeChart
 
 excel2010VersionMajor = 14
 
@@ -138,22 +131,14 @@ def __getattr__(attrName: str) -> Any:
 			1: "default",
 		},
 	}
-	if NVDAState._allowDeprecatedAPI():
-		if attrName in _deprecatedConstantsMap:
-			replacementSymbol = _deprecatedConstantsMap[attrName]
-			log.warning(
-				f"Importing {attrName} from here is deprecated. "
-				f"Import XlVAlign or XlHAlign enumerations instead.",
-				stack_info=True,
-			)
-			return replacementSymbol
-		elif attrName == "ExcelCellInfo":
-			warnings.warn(
-				"NVDAObjects.window.excel.ExcelCellInfo is deprecated. Use NVDAHelper.localLib.EXCEL_CELLINFO instead.",
-				DeprecationWarning,
-				stacklevel=2,
-			)
-			return EXCEL_CELLINFO
+	if attrName in _deprecatedConstantsMap and NVDAState._allowDeprecatedAPI():
+		replacementSymbol = _deprecatedConstantsMap[attrName]
+		log.warning(
+			f"Importing {attrName} from here is deprecated. "
+			f"Import XlVAlign or XlHAlign enumerations instead.",
+			stack_info=True,
+		)
+		return replacementSymbol
 	raise AttributeError(f"module {repr(__name__)} has no attribute {repr(attrName)}")
 
 
@@ -820,15 +805,6 @@ class ExcelBase(Window):
 			obj.parent = selection
 		return obj
 
-	def _getActiveCell(self) -> "ExcelCell":
-		cell = self.excelWindowObject.ActiveCell
-		obj = ExcelCell(
-			windowHandle=self.windowHandle,
-			excelWindowObject=self.excelWindowObject,
-			excelCellObject=cell,
-		)
-		return obj
-
 	def _getSelection(self):
 		selection = self.excelWindowObject.Selection
 		try:
@@ -885,7 +861,7 @@ class Excel7Window(ExcelBase):
 		return self.excelWindowObjectFromWindow(self.windowHandle)
 
 	def _get_focusRedirect(self):
-		selection = self._getActiveCell()
+		selection = self._getSelection()
 		dropdown = self._getDropdown(selection=selection)
 		if dropdown:
 			return dropdown
@@ -1128,22 +1104,6 @@ class ExcelWorksheet(ExcelBase):
 			"kb:numpadEnter",
 			"kb:shift+enter",
 			"kb:shift+numpadEnter",
-		),
-		canPropagate=True,
-	)
-	def script_changeActiveCell(self, gesture: inputCore.InputGesture) -> None:
-		isChartActive = True if self.excelWindowObject.ActiveChart else False
-		if isChartActive:
-			objGetter = self._getSelection
-		else:
-			objGetter = self._getActiveCell
-		self.changeSelectionOrActiveCell(
-			gesture=gesture,
-			objGetter=objGetter,
-		)
-
-	@scriptHandler.script(
-		gestures=(
 			"kb:upArrow",
 			"kb:downArrow",
 			"kb:leftArrow",
@@ -1190,18 +1150,8 @@ class ExcelWorksheet(ExcelBase):
 		),
 		canPropagate=True,
 	)
-	def script_changeSelection(self, gesture: inputCore.InputGesture) -> None:
-		self.changeSelectionOrActiveCell(
-			gesture=gesture,
-			objGetter=self._getSelection,
-		)
-
-	def changeSelectionOrActiveCell(
-		self,
-		gesture: inputCore.InputGesture,
-		objGetter: Callable[[], ExcelCell | ExcelSelection | OfficeChart],
-	):
-		oldSelection = objGetter()
+	def script_changeSelection(self, gesture):
+		oldSelection = self._getSelection()
 		gesture.send()
 		newSelection = None
 		start = time.time()
@@ -1217,7 +1167,7 @@ class ExcelWorksheet(ExcelBase):
 			if eventHandler.isPendingEvents("gainFocus"):
 				# This object is no longer focused.
 				return
-			newSelection = objGetter()
+			newSelection = self._getSelection()
 			if newSelection and newSelection != oldSelection:
 				log.debug(f"Detected new selection after {elapsed} sec")
 				break
@@ -1455,7 +1405,7 @@ class NvCellState(enum.IntEnum):
 	UNLOCKED = (1 << 10,)
 
 
-_nvCellStatesToStates: dict[NvCellState, controlTypes.State] = {
+_nvCellStatesToStates: Dict[NvCellState, controlTypes.State] = {
 	NvCellState.EXPANDED: controlTypes.State.EXPANDED,
 	NvCellState.COLLAPSED: controlTypes.State.COLLAPSED,
 	NvCellState.LINKED: controlTypes.State.LINKED,
@@ -1467,6 +1417,23 @@ _nvCellStatesToStates: dict[NvCellState, controlTypes.State] = {
 	NvCellState.OVERFLOWING: controlTypes.State.OVERFLOWING,
 	NvCellState.UNLOCKED: controlTypes.State.UNLOCKED,
 }
+
+
+class ExcelCellInfo(ctypes.Structure):
+	_fields_ = [
+		("text", comtypes.BSTR),
+		("address", comtypes.BSTR),
+		("inputTitle", comtypes.BSTR),
+		("inputMessage", comtypes.BSTR),
+		("nvCellStates", ctypes.c_longlong),  # bitwise OR of the NvCellState enum values.
+		("rowNumber", ctypes.c_long),
+		("rowSpan", ctypes.c_long),
+		("columnNumber", ctypes.c_long),
+		("columnSpan", ctypes.c_long),
+		("outlineLevel", ctypes.c_long),
+		("comments", comtypes.BSTR),
+		("formula", comtypes.BSTR),
+	]
 
 
 class ExcelCellInfoQuickNavItem(browseMode.QuickNavItem):
@@ -1567,7 +1534,7 @@ class ExcelCellInfoQuicknavIterator(object, metaclass=abc.ABCMeta):
 		if not collectionObject:
 			return
 		count = collectionObject.count
-		cellInfos = (EXCEL_CELLINFO * count)()
+		cellInfos = (ExcelCellInfo * count)()
 		numCellsFetched = ctypes.c_long()
 		address = collectionObject.address(True, True, xlA1, True)
 		NVDAHelper.localLib.nvdaInProcUtils_excel_getCellInfos(
@@ -1604,13 +1571,13 @@ class FormulaExcelCellInfoQuicknavIterator(ExcelCellInfoQuicknavIterator):
 
 
 class ExcelCell(ExcelBase):
-	excelCellInfo: EXCEL_CELLINFO | None
+	excelCellInfo: Optional[ExcelCellInfo]
 	"""Type info for auto property: _get_excelCellInfo"""
 
-	def _get_excelCellInfo(self) -> EXCEL_CELLINFO | None:
+	def _get_excelCellInfo(self) -> Optional[ExcelCellInfo]:
 		if not self.appModule.helperLocalBindingHandle:
 			return None
-		ci = EXCEL_CELLINFO()
+		ci = ExcelCellInfo()
 		numCellsFetched = ctypes.c_long()
 		address = self.excelCellObject.address(True, True, xlA1, True)
 		res = NVDAHelper.localLib.nvdaInProcUtils_excel_getCellInfos(
@@ -2245,12 +2212,12 @@ class ExcelFormControl(ExcelBase):
 		# bottom right cell's height in points
 		bottomRightCellHeight = bottomRightAddress.Height
 		self.excelApplicationObject = self.parent.excelWorksheetObject.Application
-		hDC = user32.GetDC(None)
+		hDC = ctypes.windll.user32.GetDC(None)
 		# pixels per inch along screen width
-		px = winBindings.gdi32.GetDeviceCaps(hDC, LOGPIXELSX)
+		px = ctypes.windll.gdi32.GetDeviceCaps(hDC, LOGPIXELSX)
 		# pixels per inch along screen height
-		py = winBindings.gdi32.GetDeviceCaps(hDC, LOGPIXELSY)
-		user32.ReleaseDC(None, hDC)
+		py = ctypes.windll.gdi32.GetDeviceCaps(hDC, LOGPIXELSY)
+		ctypes.windll.user32.ReleaseDC(None, hDC)
 		zoom = self.excelApplicationObject.ActiveWindow.Zoom
 		zoomRatio = zoom / 100
 		# Conversion from inches to Points, 1 inch=72points

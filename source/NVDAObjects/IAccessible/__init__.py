@@ -1,5 +1,5 @@
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2006-2025 NV Access Limited, Babbage B.V., Cyrille Bougot
+# Copyright (C) 2006-2024 NV Access Limited, Babbage B.V., Cyrille Bougot
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
@@ -40,8 +40,6 @@ import displayModel
 import IAccessibleHandler
 import oleacc
 import JABHandler
-from winBindings import user32
-import winBindings.ole32
 import winUser
 import globalVars  # noqa: F401
 from logHandler import log
@@ -178,18 +176,16 @@ def normalizeIA2TextFormatField(formatField):
 	else:
 		formatField["italic"] = False
 	try:
-		invalid: str | None = formatField.pop("invalid")
+		invalid = formatField.pop("invalid")
 	except KeyError:
 		invalid = None
-	else:
-		invalid = invalid.lower().strip()
-	match invalid:
-		case "spelling":
+	if invalid:
+		# aria-invalid can contain multiple values separated by a comma.
+		invalidList = [x.lower().strip() for x in invalid.split(",")]
+		if "spelling" in invalidList:
 			formatField["invalid-spelling"] = True
-		case "grammar":
+		if "grammar" in invalidList:
 			formatField["invalid-grammar"] = True
-		case _:
-			pass
 	color = formatField.get("color")
 	if color:
 		try:
@@ -513,10 +509,6 @@ class IAccessible(Window):
 	@type IAccessibleChildID: int
 	"""
 
-	# For Windowless RichEdit.
-	# https://learn.microsoft.com/en-us/windows/win32/api/textserv/nl-textserv-itextservices
-	IID_ITextServices = GUID("{8D33F740-CF58-11CE-A89D-00AA006CADC5}")
-
 	IAccessibleTableUsesTableCellIndexAttrib = (
 		False  #: Should the table-cell-index IAccessible2 object attribute be used rather than indexInParent?
 	)
@@ -716,10 +708,6 @@ class IAccessible(Window):
 			from . import webKit
 
 			webKit.findExtraOverlayClasses(self, clsList)
-		elif windowClassName == "wxWindowNR":
-			from . import wx as wxObjects
-
-			wxObjects.findExtraOverlayClasses(self, clsList)
 		elif windowClassName.startswith("Chrome_"):
 			from . import chromium
 
@@ -730,6 +718,15 @@ class IAccessible(Window):
 			winConsole.findExtraOverlayClasses(self, clsList)
 
 		# Support for Windowless richEdit
+		if not hasattr(IAccessible, "IID_ITextServices"):
+			try:
+				IAccessible.IID_ITextServices = ctypes.cast(
+					ctypes.windll.msftedit.IID_ITextServices,
+					ctypes.POINTER(GUID),
+				).contents
+			except WindowsError:
+				log.debugWarning("msftedit not available, couldn't retrieve IID_ITextServices")
+				IAccessible.IID_ITextServices = None
 		if IAccessible.IID_ITextServices:
 			try:
 				pDoc = self.IAccessibleObject.QueryInterface(IServiceProvider).QueryService(
@@ -810,7 +807,7 @@ class IAccessible(Window):
 			log.debugWarning("Resorting to WindowFromPoint on accLocation")
 			try:
 				left, top, width, height = IAccessibleObject.accLocation(0)
-				windowHandle = user32.WindowFromPoint(winUser.POINT(left, top))
+				windowHandle = winUser.user32.WindowFromPoint(winUser.POINT(left, top))
 			except COMError as e:
 				log.debugWarning("accLocation failed: %s" % e)
 		if not windowHandle:
@@ -1081,15 +1078,15 @@ class IAccessible(Window):
 			return 0
 		return res if isinstance(res, int) else 0
 
-	states: set[controlTypes.State]
+	states: typing.Set[controlTypes.State]
 	"""Type info for auto property: _get_states
 	"""
 
 	# C901 '_get_states' is too complex. Look for opportunities to break this method down.
-	def _get_states(self) -> set[controlTypes.State]:  # noqa: C901
+	def _get_states(self) -> typing.Set[controlTypes.State]:  # noqa: C901
 		states = set()
 		if self.event_objectID in (winUser.OBJID_CLIENT, winUser.OBJID_WINDOW) and self.event_childID == 0:
-			states.update(super().states)
+			states.update(super(IAccessible, self).states)
 		try:
 			IAccessibleStates = self.IAccessibleStates
 		except COMError:
@@ -1203,10 +1200,9 @@ class IAccessible(Window):
 		return True
 
 	def _get_labeledBy(self) -> "IAccessible | None":
-		if isinstance(self.IAccessibleObject, IA2.IAccessible2):
-			label = self._getIA2RelationFirstTarget(IAccessibleHandler.RelationType.LABELLED_BY)
-			if label:
-				return label
+		label = self._getIA2RelationFirstTarget(IAccessibleHandler.RelationType.LABELLED_BY)
+		if label:
+			return label
 
 		try:
 			ret = IAccessibleHandler.accNavigate(
@@ -1641,7 +1637,7 @@ class IAccessible(Window):
 				ret.append(text)
 			return "\n".join(ret)
 		finally:
-			winBindings.ole32.CoTaskMemFree(headers)
+			ctypes.windll.ole32.CoTaskMemFree(headers)
 
 	def _get_rowHeaderText(self):
 		return self._tableHeaderTextHelper("row")
@@ -1985,34 +1981,27 @@ class IAccessible(Window):
 		return tuple(detailsRelsGen)
 
 	def _get_controllerFor(self) -> list[NVDAObject]:
-		if isinstance(self.IAccessibleObject, IA2.IAccessible2):
-			control = self._getIA2RelationFirstTarget(IAccessibleHandler.RelationType.CONTROLLER_FOR)
-			if control:
-				return [control]
-		return super().controllerFor
+		control = self._getIA2RelationFirstTarget(IAccessibleHandler.RelationType.CONTROLLER_FOR)
+		if control:
+			return [control]
+		return []
 
 	#: Type definition for auto prop '_get_flowsTo'
-	flowsTo: "IAccessible | None"
+	flowsTo: typing.Optional["IAccessible"]
 
-	def _get_flowsTo(self) -> "IAccessible | None":
-		if isinstance(self.IAccessibleObject, IA2.IAccessible2):
-			return self._getIA2RelationFirstTarget(IAccessibleHandler.RelationType.FLOWS_TO)
-		return super().flowsTo
+	def _get_flowsTo(self) -> typing.Optional["IAccessible"]:
+		return self._getIA2RelationFirstTarget(IAccessibleHandler.RelationType.FLOWS_TO)
 
 	#: Type definition for auto prop '_get_flowsFrom'
-	flowsFrom: "IAccessible | None"
+	flowsFrom: typing.Optional["IAccessible"]
 
-	def _get_flowsFrom(self) -> "IAccessible | None":
-		if isinstance(self.IAccessibleObject, IA2.IAccessible2):
-			return self._getIA2RelationFirstTarget(IAccessibleHandler.RelationType.FLOWS_FROM)
-		return super().flowsFrom
+	def _get_flowsFrom(self) -> typing.Optional["IAccessible"]:
+		return self._getIA2RelationFirstTarget(IAccessibleHandler.RelationType.FLOWS_FROM)
 
 	def _get_errorMessage(self) -> str | None:
-		if isinstance(self.IAccessibleObject, IA2.IAccessible2):
-			errorNode = self._getIA2RelationFirstTarget(IAccessibleHandler.RelationType.ERROR)
-			if errorNode is not None:
-				return errorNode.summarizeInProcess()
-		return super().errorMessage
+		errorNode = self._getIA2RelationFirstTarget(IAccessibleHandler.RelationType.ERROR)
+		if errorNode is not None:
+			return errorNode.summarizeInProcess()
 
 	def event_valueChange(self):
 		if isinstance(self, EditableTextWithAutoSelectDetection):
@@ -2434,12 +2423,6 @@ class OutlineItem(IAccessible):
 class List(IAccessible):
 	def _get_role(self):
 		return controlTypes.Role.LIST
-
-	def _get_states(self) -> set[controlTypes.State]:
-		states = super().states
-		if self.windowStyle & winUser.LBS_EXTENDEDSEL:
-			states.add(controlTypes.State.MULTISELECTABLE)
-		return states
 
 
 class SysLinkClient(IAccessible):

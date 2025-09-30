@@ -1,7 +1,8 @@
+# tests/unit/test_baseObject.py
 # A part of NonVisual Desktop Access (NVDA)
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
-# Copyright (C) 2018-2025 NV Access Limited, Babbage B.V.
+# Copyright (C) 2018-2019 NV Access Limited, Babbage B.V.
 
 """Unit tests for the baseObject module, its classes and their derivatives."""
 
@@ -146,21 +147,18 @@ class TestAbstractAutoPropertyObjects(unittest.TestCase):
 	It also makes sure that abstract properties can be overridden on subclasses.
 	"""
 
-	@staticmethod
-	def _get_regex(className: str) -> str:
-		return rf"^Can't instantiate abstract class {className} without an implementation for abstract method 'x'"
-
 	def test_abstractProperty(self):
 		self.assertRaisesRegex(
 			TypeError,
-			self._get_regex("AutoPropertyObjectWithAbstractProperty"),
+			"^Can't instantiate abstract class AutoPropertyObjectWithAbstractProperty with abstract method x",
 			AutoPropertyObjectWithAbstractProperty,
 		)
 
 	def test_subclassedAbstractProperty(self):
 		self.assertRaisesRegex(
 			TypeError,
-			self._get_regex("SubclassedAutoPropertyObjectWithAbstractProperty"),
+			"^Can't instantiate abstract class SubclassedAutoPropertyObjectWithAbstractProperty "
+			"with abstract method x",
 			SubclassedAutoPropertyObjectWithAbstractProperty,
 		)
 

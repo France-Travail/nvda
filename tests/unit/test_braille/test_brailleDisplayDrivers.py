@@ -1,12 +1,11 @@
 # A part of NonVisual Desktop Access (NVDA)
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
-# Copyright (C) 2017-2025 NV Access Limited, Leonard de Ruijter
+# Copyright (C) 2017-2020 NV Access Limited, Leonard de Ruijter
 
 """Unit tests for braille display drivers."""
 
-import sysconfig
-import sys
+from typing import Set
 from brailleDisplayDrivers import seikantk
 import unittest
 import braille
@@ -103,8 +102,8 @@ class TestSeikantkDriver_HID(unittest.TestCase):
 	def _simulateKeyPress(
 		self,
 		sampleMessage: bytes,
-		expectedKeyNames: set[str],
-		expectedRoutingIndexes: set[int],
+		expectedKeyNames: Set[str],
+		expectedRoutingIndexes: Set[int],
 	):
 		seikaTestDriver = FakeSeikantkDriver(isHid=True)
 		seikaTestDriver.simulateMessageReceived(sampleMessage)
@@ -156,8 +155,8 @@ class TestSeikantkDriver_Serial(unittest.TestCase):
 	def _simulateKeyPress(
 		self,
 		sampleMessage: bytes,
-		expectedKeyNames: set[str],
-		expectedRoutingIndexes: set[int],
+		expectedKeyNames: Set[str],
+		expectedRoutingIndexes: Set[int],
 	):
 		seikaTestDriver = FakeSeikantkDriver(isHid=False)
 		seikaTestDriver.simulateMessageReceived(sampleMessage)
@@ -177,17 +176,9 @@ class TestGestureMap(unittest.TestCase):
 				continue
 			for cls, gesture, scriptName in gmap.getScriptsForAllGestures():
 				if gesture.startswith("br"):
-					self.assertRegex(gesture, braille.BrailleDisplayGesture.ID_PARTS_REGEX)
+					self.assertRegexpMatches(gesture, braille.BrailleDisplayGesture.ID_PARTS_REGEX)
 
 
-@unittest.skipUnless(
-	sysconfig.get_platform() == "win32",
-	"BRLTTY is only supported on 32-bit Windows",
-)
-@unittest.skipUnless(
-	sys.version_info.major == 3 and sys.version_info.minor == 11,
-	"Skipping brlapi tests unless Python 3.11",
-)
 class TestBRLTTY(unittest.TestCase):
 	"""Tests the integrity of the bundled brlapi module."""
 

@@ -1,8 +1,15 @@
 /*
-A part of NonVisual Desktop Access (NVDA)
-Copyright (C) 2023-2025 NV Access Limited, James Teh.
-This file may be used under the terms of the GNU General Public License, version 2 or later, as modified by the NVDA license.
-For full terms and any additional permissions, see the NVDA license file: https://github.com/nvaccess/nvda/blob/master/copying.txt
+This file is a part of the NVDA project.
+URL: http://www.nvda-project.org/
+Copyright 2023-2024 NV Access Limited, James Teh.
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License version 2.0, as published by
+    the Free Software Foundation.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+This license can be found at:
+http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 */
 
 #include <thread>
@@ -195,8 +202,7 @@ class WasapiPlayer {
 
 	// Reset our state due to being stopped. This runs on the feeder thread
 	// rather than on the thread which called stop() because writing to a vector
-	// isn't thread safe. We also reset the stream here because this can't be done
-	// in stop() if the feeder thread is currently writing to the buffer.
+	// isn't thread safe.
 	void completeStop();
 
 	// Convert frames into ms.
@@ -354,7 +360,7 @@ HRESULT WasapiPlayer::feed(unsigned char* data, unsigned int size,
 		} else {
 			// Silence ends in this chunk. Skip the silence and continue.
 			data += silenceSize;
-			size -= (unsigned int)silenceSize;
+			size -= silenceSize;
 			remainingFrames = size / format.nBlockAlign;
 			isTrimmingLeadingSilence = false;  // Stop checking for silence
 
@@ -580,21 +586,22 @@ bool WasapiPlayer::didPreferredDeviceBecomeAvailable() {
 }
 
 HRESULT WasapiPlayer::stop() {
-	HRESULT hr = client->Stop();
-	// It's important that we set playState *after*
-	// calling client->Stop() because otherwise, the feeder thread might see the
-	// playState change and call client->Reset() before client->Stop() runs,
-	// causing AUDCLNT_E_NOT_STOPPED.
 	playState = PlayState::stopping;
+	HRESULT hr = client->Stop();
 	// If the device has been invalidated, it has already stopped. Just ignore
 	// this and behave as if we were successful to avoid a cascade of breakage.
 	// feed() will attempt to reopen the device next time it is called.
 	if (
 		hr != AUDCLNT_E_DEVICE_INVALIDATED
 		&& hr != AUDCLNT_E_NOT_INITIALIZED
-		&& FAILED(hr)
 	) {
-		return hr;
+		if (FAILED(hr)) {
+			return hr;
+		}
+		hr = client->Reset();
+		if (FAILED(hr)) {
+			return hr;
+		}
 	}
 	// If there is a feed/sync call waiting, wake it up so it can immediately
 	// return to the caller.
@@ -603,14 +610,6 @@ HRESULT WasapiPlayer::stop() {
 }
 
 void WasapiPlayer::completeStop() {
-	HRESULT hr = client->Reset();
-	if (FAILED(hr)) {
-		// We must not use LOG_ERROR here because that plays a sound and we might be
-		// in the middle of stopping our sound player.
-		LOG_DEBUGWARNING(L"Couldn't reset stream: " << hr);
-		// We deliberately continue here. If Reset failed, the stream is probably
-		// already cleared or unusable anyway. We should always reset our state.
-	}
 	nextFeedId = 0;
 	sentFrames = 0;
 	feedEnds.clear();
@@ -773,12 +772,12 @@ void SilencePlayer::generateWhiteNoise(float volume) {
 	if (volume == 0) {
 		return;
 	}
-	size_t n = whiteNoiseData.size();
+	UINT32 n = whiteNoiseData.size();
 	const double mean = 0.0;
 	const double stddev = volume * 256;
 	std::default_random_engine generator;
 	std::normal_distribution<double> dist(mean, stddev);
-	for (size_t i = 0; i < n; i++) {
+	for (UINT32 i = 0; i < n; i++) {
 		whiteNoiseData[i] = (INT16)dist(generator);
 	}
 }

@@ -20,7 +20,6 @@ import subprocess
 RAW_GITHUB_REPO_URL = "https://raw.githubusercontent.com/nvaccess/nvda"
 re_kcTitle = re.compile(r"^(<!--\s+KC:title:\s*)(.+?)(\s*-->)$")
 re_kcSettingsSection = re.compile(r"^(<!--\s+KC:settingsSection:\s*)(.+?)(\s*-->)$")
-# Comments that span a single line in their entirety
 re_comment = re.compile(r"^<!--.+-->$")
 re_heading = re.compile(r"^(#+\s+)(.+?)((?:\s+\{#.+\})?)$")
 re_bullet = re.compile(r"^(\s*\*\s+)(.+)$")
@@ -459,6 +458,7 @@ def generateMarkdown(xliffPath: str, outputPath: str, translated: bool = True) -
 						"&lt;target&gt;&lt;/target&gt;",
 					):
 						res.numBadTranslationStrings += 1
+						print(f"Warning: line {lineNum} contained a corrupt empty translation. Using source")
 						translation = ""
 					else:
 						res.numTranslatedStrings += 1

@@ -1,11 +1,9 @@
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2006-2025 NV Access Limited, Łukasz Golonka, Leonard de Ruijter
+# Copyright (C) 2006-2022 NV Access Limited, Łukasz Golonka, Leonard de Ruijter
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
 import typing
-
-from winBindings import user32
 
 # F401 imported but unused. RelationType should be exposed from IAccessibleHandler, in future __all__
 # should be used to export it.
@@ -23,6 +21,7 @@ from typing import (
 import weakref
 from ctypes import (
 	wintypes,
+	windll,
 	byref,
 	c_void_p,
 	c_char,
@@ -34,8 +33,6 @@ from ctypes import (
 from ctypes.wintypes import HANDLE
 from comtypes import IUnknown, IServiceProvider, COMError
 import comtypes.client
-import winBindings.kernel32
-import winBindings.ole32
 import oleacc
 import JABHandler
 import UIAHandler
@@ -231,7 +228,6 @@ IAccessibleStatesToNVDAStates = {
 	oleacc.STATE_SYSTEM_PROTECTED: controlTypes.State.PROTECTED,
 	oleacc.STATE_SYSTEM_SELECTABLE: controlTypes.State.SELECTABLE,
 	oleacc.STATE_SYSTEM_FOCUSABLE: controlTypes.State.FOCUSABLE,
-	oleacc.STATE_SYSTEM_MULTISELECTABLE: controlTypes.State.MULTISELECTABLE,
 }
 
 IAccessible2StatesToNVDAStates = {
@@ -369,11 +365,10 @@ def accessibleObjectFromPoint(x, y):
 	return normalizeIAccessible(pacc, child), child
 
 
-def windowFromAccessibleObject(ia) -> int:
+def windowFromAccessibleObject(ia):
 	try:
 		return oleacc.WindowFromAccessibleObject(ia)
-	except WindowsError:
-		log.debugWarning("windowFromAccessibleObject failed", exc_info=True)
+	except:  # noqa: E722 Bare except
 		return 0
 
 
@@ -554,7 +549,7 @@ def winEventToNVDAEvent(  # noqa: C901
 			)
 		return None
 	# Make sure this window does not have a ghost window if possible
-	if user32._GhostWindowFromHungWindow is not None and user32._GhostWindowFromHungWindow(window):
+	if NVDAObjects.window.GhostWindowFromHungWindow and NVDAObjects.window.GhostWindowFromHungWindow(window):
 		if isMSAADebugLoggingEnabled():
 			log.debug(
 				f"Ghosted hung window. Dropping winEvent {getWinEventLogInfo(window, objectID, childID, eventID)}",
@@ -786,9 +781,9 @@ def processDesktopSwitchWinEvent(window, objectID, childID):
 		log.debug(
 			f"Processing desktopSwitch winEvent: {getWinEventLogInfo(window, objectID, childID)}",
 		)
-	hDesk = user32.OpenInputDesktop(0, False, 0)
+	hDesk = windll.user32.OpenInputDesktop(0, False, 0)
 	if hDesk != 0:
-		user32.CloseDesktop(hDesk)
+		windll.user32.CloseDesktop(hDesk)
 		core.callLater(200, _handleUserDesktop)
 	else:
 		# When hDesk == 0, the active desktop has changed.
@@ -1125,7 +1120,7 @@ def getIAccIdentity(pacc, childID):
 			d["windowHandle"] = fields[1]
 		return d
 	finally:
-		winBindings.ole32.CoTaskMemFree(stringPtr)
+		windll.ole32.CoTaskMemFree(stringPtr)
 
 
 def findGroupboxObject(obj):
@@ -1307,6 +1302,6 @@ def isMarshalledIAccessible(IAccessibleObject):
 		.contents.value
 	)
 	handle = HANDLE()
-	winBindings.kernel32.GetModuleHandleEx(6, addr, byref(handle))
-	winBindings.kernel32.GetModuleFileName(handle, buf, 1024)
+	windll.kernel32.GetModuleHandleExW(6, addr, byref(handle))
+	windll.kernel32.GetModuleFileNameW(handle, buf, 1024)
 	return not buf.value.lower().endswith("oleacc.dll")

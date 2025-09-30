@@ -31,6 +31,7 @@ import speech
 from speech import (
 	sayAll,
 	shortcutKeys,
+	languageHandling,
 )
 from NVDAObjects import NVDAObject, NVDAObjectTextInfo
 import globalVars
@@ -45,7 +46,6 @@ from config.configFlags import (
 	BrailleMode,
 	OutputMode,
 	TypingEcho,
-	ReportSpellingErrors,
 )
 from config.featureFlag import FeatureFlag
 from config.featureFlagEnums import BoolFlag
@@ -261,15 +261,22 @@ class GlobalCommands(ScriptableObject):
 	def script_reportCurrentLine(self, gesture):
 		obj = api.getFocusObject()
 		treeInterceptor = obj.treeInterceptor
+		isNavigable: bool = False
 		if (
 			isinstance(treeInterceptor, treeInterceptorHandler.DocumentTreeInterceptor)
 			and not treeInterceptor.passThrough
 		):
 			obj = treeInterceptor
-		try:
-			info = obj.makeTextInfo(textInfos.POSITION_CARET)
-		except (NotImplementedError, RuntimeError):
-			info = obj.makeTextInfo(textInfos.POSITION_FIRST)
+			isNavigable = True
+		else:
+			isNavigable = obj._hasNavigableText
+		if isNavigable:
+			try:
+				info = obj.makeTextInfo(textInfos.POSITION_CARET)
+			except (NotImplementedError, RuntimeError):
+				info = obj.makeTextInfo(textInfos.POSITION_FIRST)
+		else:
+			info = NVDAObjectTextInfo(obj, textInfos.POSITION_FIRST)
 		info.expand(textInfos.UNIT_LINE)
 		scriptCount = scriptHandler.getLastScriptRepeatCount()
 		if scriptCount == 0:
@@ -789,18 +796,19 @@ class GlobalCommands(ScriptableObject):
 
 	@script(
 		# Translators: Input help mode message for toggle report spelling errors command.
-		description=_("Cycles through options for how to report spelling errors"),
+		description=_("Toggles on and off the reporting of spelling errors"),
 		category=SCRCAT_DOCUMENTFORMATTING,
 	)
-	def script_toggleReportSpellingErrors(self, gesture: inputCore.InputGesture):
-		toggleIntegerValue(
-			configSection="documentFormatting",
-			configKey="reportSpellingErrors2",
-			enumClass=ReportSpellingErrors,
-			# Translators: Reported when the user cycles through the choices to report spelling errors.
-			# {mode} will be replaced with the mode; e.g. Off, Speech, Sound.
-			messageTemplate=_("Report spelling errors {mode}"),
-		)
+	def script_toggleReportSpellingErrors(self, gesture):
+		if config.conf["documentFormatting"]["reportSpellingErrors"]:
+			# Translators: The message announced when toggling the report spelling errors document formatting setting.
+			state = _("report spelling errors off")
+			config.conf["documentFormatting"]["reportSpellingErrors"] = False
+		else:
+			# Translators: The message announced when toggling the report spelling errors document formatting setting.
+			state = _("report spelling errors on")
+			config.conf["documentFormatting"]["reportSpellingErrors"] = True
+		ui.message(state)
 
 	@script(
 		# Translators: Input help mode message for toggle report pages command.
@@ -2322,11 +2330,14 @@ class GlobalCommands(ScriptableObject):
 		else:
 			ui.reviewMessage(gui.blockAction.Context.WINDOWS_LOCKED.translatedMessage)
 
-	def _getCurrentLanguageForTextInfo(self, info: textInfos.TextInfo):
+	def _getCurrentLanguageForTextInfo(self, info):
 		curLanguage = None
-		for field in info.getTextWithFields({}):
-			if isinstance(field, textInfos.FieldCommand) and field.command == "formatChange":
-				curLanguage = field.field.get("language")
+		if languageHandling.shouldMakeLangChangeCommand():
+			for field in info.getTextWithFields({}):
+				if isinstance(field, textInfos.FieldCommand) and field.command == "formatChange":
+					curLanguage = field.field.get("language")
+		if curLanguage is None:
+			curLanguage = speech.getCurrentLanguage()
 		return curLanguage
 
 	@script(
@@ -2342,8 +2353,6 @@ class GlobalCommands(ScriptableObject):
 		info = api.getReviewPosition().copy()
 		info.expand(textInfos.UNIT_CHARACTER)
 		curLanguage = self._getCurrentLanguageForTextInfo(info)
-		if curLanguage is None:
-			curLanguage = speech.getCurrentLanguage()
 		text = info.text
 		expandedSymbol = characterProcessing.processSpeechSymbol(curLanguage, text)
 		if expandedSymbol == text:
@@ -2355,14 +2364,10 @@ class GlobalCommands(ScriptableObject):
 			ui.message(expandedSymbol)
 		else:
 			# Translators: Character and its replacement used from the "Review current Symbol" command. Example: "Character: ? Replacement: question"
-			message = _("Character: {character}\nReplacement: {replacement}").format(
-				character=text,
-				replacement=expandedSymbol,
-			)
+			message = _("Character: {}\nReplacement: {}").format(text, expandedSymbol)
 			languageDescription = languageHandler.getLanguageDescription(curLanguage)
 			# Translators: title for expanded symbol dialog. Example: "Expanded symbol (English)"
-			# {lang} will be replaced with the current voice's language.
-			title = _("Expanded symbol ({lang})").format(lang=languageDescription)
+			title = _("Expanded symbol ({})").format(languageDescription)
 			ui.browseableMessage(message, title)
 
 	@script(
@@ -2536,7 +2541,7 @@ class GlobalCommands(ScriptableObject):
 			"reportColor",
 			"reportStyle",
 			"reportAlignment",
-			"reportSpellingErrors2",
+			"reportSpellingErrors",
 			"reportLineIndentation",
 			"reportParagraphIndentation",
 			"reportLineSpacing",
@@ -4939,28 +4944,23 @@ class GlobalCommands(ScriptableObject):
 	)
 	def script_reportCaretLanguage(self, gesture: "inputCore.InputGesture"):
 		info = self._getTIAtCaret()
-		if info is None:
-			log.debugWarning("No caret")
-			return
 		info.expand(textInfos.UNIT_CHARACTER)
 		curLanguage = self._getCurrentLanguageForTextInfo(info)
-		if curLanguage is None:
-			# Translators: Reported when the language of the text at caret is not defined.
-			languageDescription = pgettext("reportLanguage", "Unknown language")
-		else:
-			languageDescription = languageHandler.getLanguageDescription(curLanguage)
+		langToReport = languageHandling.getLangToReport(curLanguage)
+		languageDescription = languageHandler.getLanguageDescription(langToReport)
 		if languageDescription is None:
-			languageDescription = curLanguage
+			languageDescription = langToReport
 		message = languageDescription
-		curSynth = synthDriverHandler.getSynth()
-		if not curSynth.languageIsSupported(curLanguage):
-			message = pgettext(
-				"reportLanguage",
-				# Translators: Language of the character at caret position when it's not supported by the current synthesizer.
-				"{languageDescription} (not supported)",
-			).format(
-				languageDescription=languageDescription,
-			)
+		if languageHandling.shouldReportNotSupported():
+			curSynth = synthDriverHandler.getSynth()
+			if not curSynth.languageIsSupported(langToReport):
+				message = pgettext(
+					"reportLanguage",
+					# Translators: Language of the character at caret position when it's not supported by the current synthesizer.
+					"{languageDescription} (not supported)",
+				).format(
+					languageDescription=languageDescription,
+				)
 		repeats = scriptHandler.getLastScriptRepeatCount()
 		if repeats == 0:
 			ui.message(message)
@@ -5020,7 +5020,7 @@ class GlobalCommands(ScriptableObject):
 		gui.blockAction.Context.MODAL_DIALOG_OPEN,
 	)
 	def script_connectToRemote(self, gesture: "inputCore.InputGesture"):
-		if _remoteClient._remoteClient.isConnected() or _remoteClient._remoteClient.isConnecting:
+		if _remoteClient._remoteClient.isConnected() or _remoteClient._remoteClient.connecting:
 			# Translators: A message indicating that the remote client is already connected.
 			ui.message(_("Already connected"))
 			return
@@ -5034,7 +5034,7 @@ class GlobalCommands(ScriptableObject):
 	)
 	@gui.blockAction.when(gui.blockAction.Context.REMOTE_ACCESS_DISABLED)
 	def script_toggleRemoteConnection(self, gesture: "inputCore.InputGesture") -> None:
-		if _remoteClient._remoteClient.isConnected() or _remoteClient._remoteClient.isConnecting:
+		if _remoteClient._remoteClient.isConnected():
 			self.script_disconnectFromRemote(gesture)
 		else:
 			self.script_connectToRemote(gesture)
@@ -5051,18 +5051,6 @@ class GlobalCommands(ScriptableObject):
 	@gui.blockAction.when(gui.blockAction.Context.REMOTE_ACCESS_DISABLED)
 	def script_sendKeys(self, gesture: "inputCore.InputGesture"):
 		_remoteClient._remoteClient.toggleRemoteKeyControl(gesture)
-
-	@script(
-		description=pgettext(
-			"remote",
-			# Translators: Documentation string for the script that sends alt+ctrl+del to the remote computer
-			"Sends control+alt+delete to the controlled computer.",
-		),
-		category=SCRCAT_REMOTE,
-	)
-	@gui.blockAction.when(gui.blockAction.Context.REMOTE_ACCESS_DISABLED)
-	def script_sendSAS(self, gesture: "inputCore.InputGesture"):
-		_remoteClient._remoteClient.sendSAS()
 
 
 #: The single global commands instance.

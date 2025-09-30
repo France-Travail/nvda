@@ -2,13 +2,10 @@
 # A part of NonVisual Desktop Access (NVDA)
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
-# Copyright (C) 2009-2025 NV Access Limited, Babbage B.V.
+# Copyright (C) 2009-2018 NV Access Limited, Babbage B.V.
 
-from ctypes.wintypes import SMALL_RECT
 import gui
 import winUser
-import winBindings.kernel32
-import winBindings.user32
 import winKernel
 import wincon
 from colors import RGB
@@ -57,7 +54,7 @@ CONSOLE_COLORS_TO_RGB = (  # http://en.wikipedia.org/wiki/Color_Graphics_Adapter
 COMMON_LVB_UNDERSCORE = 0x8000
 
 
-@winBindings.kernel32.PHANDLER_ROUTINE
+@wincon.PHANDLER_ROUTINE
 def _consoleCtrlHandler(event):
 	if event in (wincon.CTRL_C_EVENT, wincon.CTRL_BREAK_EVENT):
 		return True
@@ -156,7 +153,7 @@ def getConsoleVisibleLines():
 	return newLines
 
 
-@winBindings.user32.WINEVENTPROC
+@winUser.WINEVENTPROC
 def consoleWinEventHook(handle, eventID, window, objectID, childID, threadID, timestamp):
 	from NVDAObjects.behaviors import KeyboardHandlerBasedTypedCharSupport
 
@@ -265,7 +262,7 @@ class WinConsoleTextInfo(textInfos.offsets.OffsetsTextInfo):
 			formatConfig = config.conf["documentFormatting"]
 		left, top = self._consoleCoordFromOffset(self._startOffset)
 		right, bottom = self._consoleCoordFromOffset(self._endOffset - 1)
-		rect = SMALL_RECT(left, top, right, bottom)
+		rect = wincon.SMALL_RECT(left, top, right, bottom)
 		if bottom - top > 0:  # offsets span multiple lines
 			rect.Left = 0
 			rect.Right = self.consoleScreenBufferInfo.dwSize.x - 1

@@ -65,7 +65,12 @@ struct WaveFormat {
 
 	static constexpr SampleType defaultThreshold() {
 		// Default threshold: 1 / 2^10 or 0.0009765625
-		return (max)() / (1 << 10);
+		if constexpr (std::is_floating_point_v<SampleType>)
+			return SampleType(1) / (1 << 10);
+		else if constexpr (bytesPerSample * 8 > 10)
+			return SampleType(1) << (bytesPerSample * 8 - 10);
+		else
+			return SampleType();
 	}
 
 	static constexpr auto toSigned(SampleType smp) {

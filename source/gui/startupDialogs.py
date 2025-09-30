@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 # A part of NonVisual Desktop Access (NVDA)
 # Copyright (C) 2006-2025 NV Access Limited, Łukasz Golonka, Cyrille Bougot
 # This file may be used under the terms of the GNU General Public License, version 2 or later.
@@ -17,7 +18,7 @@ from gui.dpiScalingHelper import DpiScalingHelperMixinWithoutInit
 import gui.guiHelper
 import keyboardHandler
 from logHandler import log
-import buildVersion
+import versionInfo
 
 
 class WelcomeDialog(
@@ -176,7 +177,7 @@ class LauncherDialog(
 	def __init__(self, parent: wx.Window | None):
 		super().__init__(
 			parent,
-			title=f"{buildVersion.name} {_('Launcher')}",
+			title=f"{versionInfo.name} {_('Launcher')}",
 		)
 
 		mainSizer = wx.BoxSizer(wx.VERTICAL)

@@ -5,11 +5,9 @@
 
 from typing import Dict, List, Optional, Set
 
-import config
-
-from .outputReason import OutputReason
 from .role import Role, clickableRoles
-from .state import STATES_LINK_TYPE, STATES_SORTED, State
+from .state import State, STATES_SORTED, STATES_LINK_TYPE
+from .outputReason import OutputReason
 
 
 def _processPositiveStates(
@@ -35,8 +33,6 @@ def _processPositiveStates(
 		positiveStates.discard(State.VISITED)
 		positiveStates.discard(State.INTERNAL_LINK)
 	positiveStates.discard(State.SELECTABLE)
-	if not config.conf["presentation"]["reportMultiSelect"]:
-		positiveStates.discard(State.MULTISELECTABLE)
 	positiveStates.discard(State.FOCUSABLE)
 	positiveStates.discard(State.CHECKABLE)
 	if State.DRAGGING in positiveStates:
@@ -45,6 +41,8 @@ def _processPositiveStates(
 	if role == Role.COMBOBOX:
 		# Combo boxes inherently have a popup, so don't report it.
 		positiveStates.discard(State.HASPOPUP)
+	import config
+
 	if not config.conf["documentFormatting"]["reportClickable"] or role in clickableRoles:
 		# This control is clearly clickable according to its role,
 		# or reporting clickable just isn't useful,
@@ -75,7 +73,6 @@ def _processPositiveStates(
 			and State.SELECTABLE in states
 		):
 			positiveStates.discard(State.SELECTED)
-			positiveStates.discard(State.MULTISELECTABLE)
 	if role not in (Role.EDITABLETEXT, Role.CHECKBOX):
 		positiveStates.discard(State.READONLY)
 	if role == Role.CHECKBOX:

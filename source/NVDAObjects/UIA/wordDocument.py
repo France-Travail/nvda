@@ -362,21 +362,20 @@ class WordDocumentTextInfo(UIATextInfo):
 				curLevel = 0
 				mathLevel = None
 				mathStartIndex = None
-				index = 0
-				# we delete items from 'fields' in the loop, so we can't use a for loop
-				while index < len(fields):
+				mathEndIndex = None
+				for index in range(len(fields)):
 					field = fields[index]
 					if isinstance(field, textInfos.FieldCommand) and field.command == "controlStart":
 						curLevel += 1
-						if field.field.get("mathml"):
+						if mathLevel is None and field.field.get("mathml"):
 							mathLevel = curLevel
 							mathStartIndex = index
 					elif isinstance(field, textInfos.FieldCommand) and field.command == "controlEnd":
-						if curLevel == mathLevel and field.field.get("mathml"):
-							del fields[mathStartIndex + 1 : index]
-							index = mathStartIndex + 1
+						if curLevel == mathLevel:
+							mathEndIndex = index
 						curLevel -= 1
-					index += 1
+				if mathEndIndex is not None:
+					del fields[mathStartIndex + 1 : mathEndIndex]
 
 		# Sometimes embedded objects and graphics In MS Word can cause a controlStart then a controlEnd with no actual formatChange / text in the middle.
 		# SpeakTextInfo always expects that the first lot of controlStarts will always contain some text.

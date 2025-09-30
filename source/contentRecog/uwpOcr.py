@@ -5,28 +5,14 @@
 
 """Recognition of text using the UWP OCR engine included in Windows 10 and later."""
 
-from ctypes import (
-	cast,
-	POINTER,
-)
+import ctypes
 import json
-from winBindings.gdi32 import RGBQUAD
 import NVDAHelper
-from NVDAHelper.localWin10 import (
-	uwpOcr_getLanguages,
-	uwpOcr_initialize,
-	uwpOcr_recognize,
-	uwpOcr_terminate,
-	uwpOcr_Callback as _uwpOcr_Callback,
-)
 from . import ContentRecognizer, LinesWordsResult
 import config
 import languageHandler
-from utils import _deprecate
 
-__getattr__ = _deprecate.handleDeprecations(
-	_deprecate.MovedSymbol("uwpOcr_Callback", "NVDAHelper.localWin10"),
-)
+uwpOcr_Callback = ctypes.CFUNCTYPE(None, ctypes.c_wchar_p)
 
 
 def getLanguages():
@@ -36,7 +22,9 @@ def getLanguages():
 		for use as NVDA language codes.
 	@rtype: list of str
 	"""
-	langs = uwpOcr_getLanguages()
+	dll = NVDAHelper.getHelperLocalWin10Dll()
+	dll.uwpOcr_getLanguages.restype = NVDAHelper.bstrReturn
+	langs = dll.uwpOcr_getLanguages()
 	return langs.split(";")[:-1]
 
 
@@ -111,7 +99,7 @@ class UwpOcr(ContentRecognizer):
 	def recognize(self, pixels, imgInfo, onResult):
 		self._onResult = onResult
 
-		@_uwpOcr_Callback
+		@uwpOcr_Callback
 		def callback(result):
 			# If self._onResult is None, recognition was cancelled.
 			if self._onResult:
@@ -120,24 +108,16 @@ class UwpOcr(ContentRecognizer):
 					self._onResult(LinesWordsResult(data, imgInfo))
 				else:
 					self._onResult(RuntimeError("UWP OCR failed"))
-			uwpOcr_terminate(self._handle)
+			self._dll.uwpOcr_terminate(self._handle)
 			self._callback = None
 			self._handle = None
 
 		self._callback = callback
-		self._handle = uwpOcr_initialize(self.language, callback)
+		self._handle = self._dll.uwpOcr_initialize(self.language, callback)
 		if not self._handle:
 			onResult(RuntimeError("UWP OCR initialization failed"))
 			return
-		uwpOcr_recognize(
-			self._handle,
-			# pixels, as fetched from screenBitmap.captureImage is a 2d array of RGBQUAD values.
-			# However uwpOcr_recognize expects a 1d array (pointer).
-			# These are identical in memory, so we can just cast.
-			cast(pixels, POINTER(RGBQUAD)),
-			imgInfo.recogWidth,
-			imgInfo.recogHeight,
-		)
+		self._dll.uwpOcr_recognize(self._handle, pixels, imgInfo.recogWidth, imgInfo.recogHeight)
 
 	def cancel(self):
 		self._onResult = None

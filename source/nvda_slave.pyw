@@ -13,7 +13,6 @@ import globalVars
 import logHandler
 import monkeyPatches.comtypesMonkeyPatches
 import NVDAState
-import winBindings.kernel32
 
 
 # Ensure that slave uses generated comInterfaces by adding our comInterfaces to `comtypes.gen` search path.
@@ -34,18 +33,20 @@ globalVars.appPid = os.getpid()
 
 
 def getNvdaHelperRemote():
+	import buildVersion
 	import ctypes
 	import winKernel
 
-	h = winBindings.kernel32.LoadLibraryEx(
-		NVDAState.ReadPaths.nvdaHelperRemoteDll,
+	# Load nvdaHelperRemote.dll but with an altered search path so it can pick up other dlls in lib
+	h = winKernel.kernel32.LoadLibraryExW(
+		os.path.join(globalVars.appDir, "lib", buildVersion.version, "nvdaHelperRemote.dll"),
 		0,
 		# Using an altered search path is necessary here
 		# As NVDAHelperRemote needs to locate dependent dlls in the same directory
 		# such as IAccessible2proxy.dll.
 		winKernel.LOAD_WITH_ALTERED_SEARCH_PATH,
 	)
-	remoteLib = ctypes.CDLL("nvdaHelperRemote", handle=h)
+	remoteLib = ctypes.WinDLL("nvdaHelperRemote", handle=h)
 	return remoteLib
 
 

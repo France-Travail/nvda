@@ -1,20 +1,26 @@
 # A part of NonVisual Desktop Access (NVDA)
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
-# Copyright (C) 2023-2025 NV Access Limited
+# Copyright (C) 2023-2024 NV Access Limited
 
 
-from collections.abc import Callable
+from __future__ import annotations
 from typing import (
 	Generator,
 	ContextManager,
+	Callable,
 	Concatenate,
+	ParamSpec,
+	TypeVar,
 )
 import functools
 import contextlib
 from . import builder
 
-_remoteFunc_self = builder._RemoteBase
+
+_remoteFunc_self = TypeVar("_remoteFunc_self", bound=builder._RemoteBase)
+_remoteFunc_paramSpec = ParamSpec("_remoteFunc_paramSpec")
+_remoteFunc_return = TypeVar("_remoteFunc_return")
 
 
 class _BaseRemoteFuncWrapper:
@@ -23,13 +29,13 @@ class _BaseRemoteFuncWrapper:
 		kwargsString = ", ".join(f"{key}={repr(val)}" for key, val in kwargs.items())
 		return f"({', '.join([argsString, kwargsString])})"
 
-	def _execRawFunc[**P, R](
+	def _execRawFunc(
 		self,
-		func: Callable[Concatenate[_remoteFunc_self, P], R],
+		func: Callable[Concatenate[_remoteFunc_self, _remoteFunc_paramSpec], _remoteFunc_return],
 		funcSelf: _remoteFunc_self,
-		*args: P.args,
-		**kwargs: P.kwargs,
-	) -> R:
+		*args: _remoteFunc_paramSpec.args,
+		**kwargs: _remoteFunc_paramSpec.kwargs,
+	) -> _remoteFunc_return:
 		main = funcSelf.rob.getInstructionList("main")
 		main.addComment(
 			f"Entering {func.__qualname__}{self.generateArgsKwargsString(*args, **kwargs)}",
@@ -38,16 +44,16 @@ class _BaseRemoteFuncWrapper:
 		main.addComment(f"Exiting {func.__qualname__}")
 		return res
 
-	def __call__[**P, R](
+	def __call__(
 		self,
-		func: Callable[Concatenate[_remoteFunc_self, P], R],
-	) -> Callable[Concatenate[_remoteFunc_self, P], R]:
+		func: Callable[Concatenate[_remoteFunc_self, _remoteFunc_paramSpec], _remoteFunc_return],
+	) -> Callable[Concatenate[_remoteFunc_self, _remoteFunc_paramSpec], _remoteFunc_return]:
 		@functools.wraps(func)
 		def wrapper(
 			funcSelf: _remoteFunc_self,
-			*args: P.args,
-			**kwargs: P.kwargs,
-		) -> R:
+			*args: _remoteFunc_paramSpec.args,
+			**kwargs: _remoteFunc_paramSpec.kwargs,
+		) -> _remoteFunc_return:
 			return self._execRawFunc(func, funcSelf, *args, **kwargs)
 
 		return wrapper
@@ -59,40 +65,40 @@ class RemoteMethodWrapper(_BaseRemoteFuncWrapper):
 	def __init__(self, mutable: bool = False):
 		self._mutable = mutable
 
-	def _execRawFunc[**P, R](
+	def _execRawFunc(
 		self,
-		func: Callable[Concatenate[_remoteFunc_self, P], R],
+		func: Callable[Concatenate[_remoteFunc_self, _remoteFunc_paramSpec], _remoteFunc_return],
 		funcSelf: _remoteFunc_self,
-		*args: P.args,
-		**kwargs: P.kwargs,
-	) -> R:
+		*args: _remoteFunc_paramSpec.args,
+		**kwargs: _remoteFunc_paramSpec.kwargs,
+	) -> _remoteFunc_return:
 		if self._mutable and not funcSelf._mutable:
 			raise RuntimeError(f"{funcSelf.__class__.__name__} is not mutable")
 		return super()._execRawFunc(func, funcSelf, *args, **kwargs)
 
 
 class RemoteContextManager(_BaseRemoteFuncWrapper):
-	def __call__[**P, R](
+	def __call__(
 		self,
 		func: Callable[
-			Concatenate[_remoteFunc_self, P],
-			Generator[R, None, None],
+			Concatenate[_remoteFunc_self, _remoteFunc_paramSpec],
+			Generator[_remoteFunc_return, None, None],
 		],
-	) -> Callable[Concatenate[_remoteFunc_self, P], ContextManager[R]]:
+	) -> Callable[Concatenate[_remoteFunc_self, _remoteFunc_paramSpec], ContextManager[_remoteFunc_return]]:
 		contextFunc = contextlib.contextmanager(func)
 		return super().__call__(contextFunc)
 
 	@contextlib.contextmanager
-	def _execRawFunc[**P, R](
+	def _execRawFunc(
 		self,
 		func: Callable[
-			Concatenate[_remoteFunc_self, P],
-			ContextManager[R],
+			Concatenate[_remoteFunc_self, _remoteFunc_paramSpec],
+			ContextManager[_remoteFunc_return],
 		],
 		funcSelf: _remoteFunc_self,
-		*args: P.args,
-		**kwargs: P.kwargs,
-	) -> Generator[R, None, None]:
+		*args: _remoteFunc_paramSpec.args,
+		**kwargs: _remoteFunc_paramSpec.kwargs,
+	) -> Generator[_remoteFunc_return, None, None]:
 		main = funcSelf.rob.getInstructionList("main")
 		main.addComment(
 			f"Entering context manager {func.__qualname__}{self.generateArgsKwargsString(*args, **kwargs)}",

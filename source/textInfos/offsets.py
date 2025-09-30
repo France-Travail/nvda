@@ -344,21 +344,26 @@ class OffsetsTextInfo(textInfos.TextInfo):
 			raise NotImplementedError(f"Unit: {unit}")
 		relStart = ctypes.c_int()
 		relEnd = ctypes.c_int()
+		# uniscribe does some strange things
+		# when you give it a string  with not more than two alphanumeric chars in a row.
+		# Inject two alphanumeric characters at the end to fix this
+		uniscribeLineText = lineText + "xx"
 		# We can't rely on len(lineText) to calculate the length of the line.
 		offsetConverter = textUtils.WideStringOffsetConverter(lineText)
 		lineLength = offsetConverter.encodedStringLength
 		if self.encoding != textUtils.WCHAR_ENCODING:
 			# We need to convert the str based line offsets to wide string offsets.
 			relOffset = offsetConverter.strToEncodedOffsets(relOffset, relOffset)[0]
+		uniscribeLineLength = lineLength + 2
 		if helperFunc(
-			lineText,
-			lineLength,
+			uniscribeLineText,
+			uniscribeLineLength,
 			relOffset,
 			ctypes.byref(relStart),
 			ctypes.byref(relEnd),
 		):
 			relStart = relStart.value
-			relEnd = relEnd.value
+			relEnd = min(lineLength, relEnd.value)
 			if self.encoding != textUtils.WCHAR_ENCODING:
 				# We need to convert the uniscribe based offsets to str offsets.
 				relStart, relEnd = offsetConverter.encodedToStrOffsets(relStart, relEnd)
@@ -643,11 +648,7 @@ class OffsetsTextInfo(textInfos.TextInfo):
 		else:
 			raise NotImplementedError
 
-	allowMoveToOffsetPastEnd = True
-	"""
-	We can move 1 past story length to allow braille routing to end insertion point. (#2096)
-	Furthermore, review cursor is able to reach the last, empty line in some controls, like Scintilla. (#18348)
-	"""
+	allowMoveToOffsetPastEnd = True  #: move with unit_character can move 1 past story length to allow braille routing to end insertion point. (#2096)
 
 	def move(self, unit, direction, endPoint=None):
 		if direction == 0:
@@ -663,7 +664,7 @@ class OffsetsTextInfo(textInfos.TextInfo):
 		count = 0
 		lowLimit = 0
 		highLimit = self._getStoryLength()
-		if self.allowMoveToOffsetPastEnd:
+		if self.allowMoveToOffsetPastEnd and unit == textInfos.UNIT_CHARACTER:
 			# #2096: There is often an uncounted character at the end of the text
 			# where the caret is placed to append text.
 			highLimit += 1

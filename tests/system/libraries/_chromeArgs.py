@@ -38,4 +38,5 @@ def getChromeArgs() -> str:
 
 
 if __name__ == "__main__":
+	# See usage in appveyor/scripts/tests/beforeTests.ps1
 	print(getChromeArgs())

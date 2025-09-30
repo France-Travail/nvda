@@ -19,8 +19,8 @@ import winVersion
 import threading
 import os
 import time
+import ctypes
 from enum import Enum
-import winBindings.kernel32
 import logHandler
 import languageHandler
 import globalVars
@@ -113,9 +113,8 @@ def _showAddonsErrors() -> None:
 		gui.messageBox(
 			_(
 				# Translators: Shown when one or more actions on add-ons failed.
-				# {failureMsg} will be replaced with the specific error message.
-				"Some operations on add-ons failed. See the log file for more details.\n{failureMsg}",
-			).format(failureMsg="\n".join(addonFailureMessages)),
+				"Some operations on add-ons failed. See the log file for more details.\n{}",
+			).format("\n".join(addonFailureMessages)),
 			# Translators: Title of message shown when requested action on add-ons failed.
 			_("Error"),
 			wx.ICON_ERROR | wx.OK,
@@ -642,7 +641,7 @@ def _setUpWxApp() -> "wx.App":
 	def onQueryEndSession(evt):
 		if config.isAppX:
 			# Automatically restart NVDA on Windows Store update
-			winBindings.kernel32.RegisterApplicationRestart(None, 0)
+			ctypes.windll.kernel32.RegisterApplicationRestart(None, 0)
 
 	app.Bind(wx.EVT_QUERY_END_SESSION, onQueryEndSession)
 
@@ -827,9 +826,9 @@ def main():
 		wx.CallAfter(audioDucking.initialize)
 
 	from winAPI.messageWindow import _MessageWindow
-	import buildVersion
+	import versionInfo
 
-	messageWindow = _MessageWindow(buildVersion.name)
+	messageWindow = _MessageWindow(versionInfo.name)
 
 	# initialize wxpython localization support
 	wxLocaleObj = wx.Locale()
@@ -1093,6 +1092,15 @@ def main():
 	_terminate(dataManager, name="addon dataManager")
 	_terminate(garbageHandler)
 	_terminate(schedule, name="task scheduler")
+	# DMP is only started if needed.
+	# Terminate manually (and let it write to the log if necessary)
+	# as core._terminate always writes an entry.
+	try:
+		import diffHandler
+
+		diffHandler._dmp._terminate()
+	except Exception:
+		log.exception("Exception while terminating DMP")
 
 	if not globalVars.appArgs.minimal and config.conf["general"]["playStartAndExitSounds"]:
 		try:

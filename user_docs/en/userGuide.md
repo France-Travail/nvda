@@ -4,6 +4,8 @@
 
 <!-- KC:title: NVDA NVDA_VERSION Commands Quick Reference -->
 
+
+
 ## Introduction {#Introduction}
 
 Welcome to NVDA!
@@ -40,15 +42,15 @@ Major highlights include:
 
 #### Minimum System Requirements {#MinimumSystemRequirements}
 
-* Operating Systems: 64-bit editions of Windows 10 and Windows 11.
-Windows Server 2016, 2019, 2022 and 2025.
+* Operating Systems: all 32-bit and 64-bit editions of Windows 8.1, Windows 10, Windows 11, and all Server Operating Systems starting from Windows Server 2012 R2.
   * both AMD64 and ARM64 variants of Windows are supported, including Copilot+ PCs.
-  * Note that Windows 10 versions older than 22H2 and Windows Server versions older than 2022 are no longer under active support by NV Access.
+  * Note that 32-bit operating systems are no longer under active support.
+  * Note that Windows 8.1 and Windows Server versions older than 2022 are no longer under active support.
 * at least 500 MB of storage space.
 
 #### Recommended System Requirements {#RecommendedSystemRequirements}
 
-* Operating Systems: Windows 11 or Windows 10 (Version 22H2), and Windows Server 2025 or 2022.
+* Operating Systems: 64-bit editions of Windows 10, Windows 11, and Windows Server 2022.
   * both AMD64 and ARM64 variants of Windows are supported, including Copilot+ PCs.
 * at least 500 MB of storage space.
 * at least 4 GB of RAM.
@@ -91,13 +93,8 @@ For details regarding exceptions, access the license document from the NVDA menu
 
 ## NVDA Quick Start Guide {#NVDAQuickStartGuide}
 
-This quick start guide contains three main sections:
-
-* [Downloading](#GettingAndSettingUpNVDA): Where to get NVDA and steps for downloading it
-* [Initial setup](#SettingUpNVDA): Steps to install and setup NVDA
-* [Running NVDA](#RunningNVDA): Commonly used keystrokes and NVDA features
-
-These are followed by information on [adjusting preferences](#Preferences), [using add-ons](#Addons), [participating in the community](#Community) and [getting help](#GettingHelp).
+This quick start guide contains three main sections: downloading, initial setup, and running NVDA.
+These are followed by information on adjusting preferences, using add-ons, participating in the community and getting help.
 The information in this guide is condensed from other parts of the NVDA User Guide.
 Please refer to the full User Guide for more detailed information on each topic.
 
@@ -117,7 +114,7 @@ These steps assume some familiarity with navigating a web page.
 
 * Open your web browser (Press the `Windows` key, type the word "internet" without quotes, and press `enter`)
 * Load the NV Access download page (Press `alt+d`, type the following address and press `enter`):
-<https://www.nvaccess.org/download>
+https://www.nvaccess.org/download
 * Activate the "download" button
 * The browser may or may not prompt for an action after downloading, and then start the download
 * Depending on the browser, the file may run automatically after it downloads
@@ -297,7 +294,6 @@ To open NVDA's general settings dialog directly, press `NVDA+control+g`.
 Many settings screens have keystrokes to open them directly, such as `NVDA+control+s` for synthesizer, or `NVDA+control+v` for other voice options.
 
 ### Add-ons {#Addons}
-
 Add-ons are programs which provide new or changed functionality for NVDA.
 Add-ons are developed by the NVDA community, or external companies and are unaffiliated with NV Access.
 As with any software, it is important to trust the developer of an add-on before using it.
@@ -315,7 +311,6 @@ When the Add-on Store opens, it shows "Available add-ons" if no add-ons are inst
 When add-ons are installed, the Add-on Store opens to the "Installed add-ons" tab.
 
 #### Available add-ons {#AvailableAddons}
-
 When the window first opens, add-ons may take a few seconds to load.
 NVDA will read the name of the first add-on once the list of add-ons finishes loading.
 Available add-ons are listed alphabetically in a multi-column list.
@@ -329,7 +324,6 @@ To browse the list and find out about a specific add-on:
 1. To return to the list of add-ons, press `alt+a`, or `shift+tab` until reaching the list.
 
 #### Searching for add-ons {#SearchingForAddons}
-
 As well as browsing all available add-ons, it is possible to filter the add-ons shown.
 To search, press `alt+s` to jump to the "Search" field and type the text to search for.
 Searching checks for matches in the add-on ID, display name, publisher, author and description fields.
@@ -354,7 +348,6 @@ During the installation process, add-ons may display dialogs that you will need 
 1. Press `enter` to restart NVDA.
 
 #### Managing installed add-ons {#ManagingInstalledAddons}
-
 Press `control+tab` to move between the tabs of the Add-on Store.
 The tabs include: "Installed add-ons", "Updatable add-ons", "Available add-ons" and "Installed incompatible add-ons".
 Each of the tabs are set out similar to each other, as a list of add-ons, a panel for more details on the selected add-on, and a button to perform actions for the selected add-on.
@@ -366,7 +359,6 @@ These changes will only take effect once NVDA is restarted.
 Note that in the Add-on Store window `escape` works the same as the Close button.
 
 #### Updating add-ons {#UpdatingAddons}
-
 When an update to an add-on you have installed is available, it will be listed in the "Updatable add-ons" tab.
 Press `control+tab` to get to this tab from anywhere in the Add-on Store.
 The status of the add-on will be listed as "Update available".
@@ -379,9 +371,9 @@ To learn more about and configure this behaviour, refer to ["Update Notification
 ### Community {#Community}
 
 NVDA has a vibrant user community.
-NV Access, makers of NVDA, are active on [Mastodon](https://fosstodon.org/@NVAccess), [Twitter/X](https://x.com/nvaccess) and [Facebook](https://www.facebook.com/NVAccess).
+There is a main [English language email list](https://nvda.groups.io/g/nvda) and a page full of [local language groups](https://github.com/nvaccess/nvda/wiki/Connect).
+NV Access, makers of NVDA, are active on [Twitter](https://twitter.com/nvaccess) and [Facebook](https://www.facebook.com/NVAccess).
 NV Access also have a regular [In-Process blog](https://www.nvaccess.org/category/in-process/).
-There is a main [NV Access owned email list](https://groups.google.com/a/nvaccess.org/g/nvda-users) and a page full of [other community groups](https://github.com/nvaccess/nvda/wiki/Connect).
 
 There is also an [NVDA Certified Expert](https://certification.nvaccess.org/) program.
 This is an online exam you can complete to demonstrate your skills in NVDA.
@@ -413,7 +405,6 @@ You can make bug reports or feature requests via [GitHub](https://github.com/nva
 The [contribution guidelines](https://github.com/nvaccess/nvda/blob/master/.github/CONTRIBUTING.md) contain valuable information for contributing to the community.
 
 ## More Setup Options {#MoreSetupOptions}
-
 ### Installation Options {#InstallingNVDA}
 
 If installing NVDA directly from the downloaded NVDA launcher, press the Install NVDA button.
@@ -494,7 +485,6 @@ Portable and temporary copies of NVDA have the following restrictions:
 * Audio ducking is not supported.
 
 ## Using NVDA {#GettingStartedWithNVDA}
-
 ### Launching NVDA {#LaunchingNVDA}
 
 If you have installed NVDA with the installer, then starting NVDA is as simple as either pressing control+alt+n, or choosing NVDA from the NVDA menu under Programs on the Start Menu.
@@ -534,7 +524,6 @@ Note: pressing on "yes" or "no" will save this setting and the dialog will never
 However, you can enable or disable the data gathering process manually in NVDA's general settings panel. For changing this setting manually, you can check or uncheck the checkbox called [Allow the NVDA project to gather NVDA usage statistics](#GeneralSettingsGatherUsageStats).
 
 ### About NVDA keyboard commands {#AboutNVDAKeyboardCommands}
-
 #### The NVDA Modifier Key {#TheNVDAModifierKey}
 
 Most NVDA-specific keyboard commands consist of pressing a particular key called the NVDA modifier key in conjunction with one or more other keys.
@@ -1288,7 +1277,6 @@ In order to fit as much information as possible on a braille display, the follow
 |lnk |link|
 |vlnk |visited link|
 |lst |list|
-|mslst |multiselect list|
 |mnu |menu|
 |mnubar |menu bar|
 |mnubtn |menu button|
@@ -1334,7 +1322,6 @@ The following state indicators are also defined:
 |invalid |displayed when an invalid entry has been made|
 |ldesc |displayed when an object (usually a graphic) has a long description|
 |mln |displayed when an edit field allows typing multiple lines of text such as comment fields on websites|
-|msel |displayed when an object allows selecting multiple items|
 |req |displayed when a required form field is encountered|
 |ro |displayed when an object (e.g. an editable text field) is read-only|
 |sel |displayed when an object is selected|
@@ -1478,7 +1465,6 @@ To recognize the text in the current navigator object using Windows OCR, press N
 NVDA provides its own extra features for some applications to make certain tasks easier or to provide access to functionality which is not otherwise accessible to screen reader users.
 
 ### Microsoft Word {#MicrosoftWord}
-
 #### Automatic Column and Row Header Reading {#WordAutomaticColumnAndRowHeaderReading}
 
 NVDA is able to automatically announce appropriate row and column headers when navigating around tables in Microsoft Word.
@@ -1523,7 +1509,6 @@ Pressing twice shows the information in a browsable message.
 All comments for the document, along with other tracked changes, can also be listed in the NVDA Elements List when selecting Annotations as the type.
 
 ### Microsoft Excel {#MicrosoftExcel}
-
 #### Automatic Column and Row Header Reading {#ExcelAutomaticColumnAndRowHeaderReading}
 
 NVDA is able to automatically announce appropriate row and column headers when navigating around Excel worksheets.
@@ -1551,9 +1536,9 @@ The various types of information available in the Elements List are:
 
 * Charts: This lists all charts in the active worksheet.
 Selecting a chart and pressing enter or the Move to button focuses the chart for navigating and reading with the arrow keys.
-* Notes: This lists all cells in the active worksheet containing notes.
-The cell address along with its note are shown for each cell.
-Pressing enter or the Move To button when on a listed note will move directly to that cell.
+* Comments: This lists all cells in the active worksheet containing comments.
+The cell address along with its comments are shown for each cell.
+Pressing enter or the Move To button when on a listed comment will move directly to that cell.
 * Formulas: This lists all cells in the worksheet containing a formula.
 The cell address along with its formula are shown for each cell.
 Pressing enter or the Move To button on a listed formula will move directly to that cell.
@@ -1936,22 +1921,6 @@ This option is a slider which goes from 0 to 100 - 0 being the lowest volume and
 
 This option is a slider that lets you choose how much inflection (rise and fall in pitch) the synthesizer should use to speak with.
 
-##### Use modern audio output system (WASAPI) {#SpeechSettingsUseWasapi}
-
-This option enables audio output via the Windows Audio Session API (WASAPI).
-This option only exists for Microsoft Speech API version 5 (SAPI 5) voices.
-This may improve the responsiveness of some SAPI 5 voices.
-However, some voices might not work with the current WASAPI implementation.
-If you find that the voice you are using stops working, you may disable this option.
-
-Note that the following features depend on WASAPI, and will be disabled if WASAPI is turned off:
-
-* Rate boost
-* Leading silence trimming
-* Keep audio device awake
-
-Note that in Advanced settings, there is a similar [option for SAPI 4 voices](#UseWASAPIForSAPI4), not to be confused with this one.
-
 ##### Automatic Language switching {#SpeechSettingsLanguageSwitching}
 
 This checkbox allows you to toggle whether NVDA should switch speech synthesizer languages automatically if the text being read specifies its language.
@@ -1963,7 +1932,7 @@ This checkbox allows you to toggle whether or not dialect changes should be made
 For example, if reading in an English U.S. voice but a document specifies that some text is in English U.K., then the synthesizer will switch accents if this option is enabled.
 This option is disabled by default.
 
-##### Report language changes while reading {#ReportLanguage}
+##### Report language changes {#ReportLanguage}
 
 This checkbox allows you to toggle whether NVDA should report the detected language of the text being read, when the language changes from the default language.
 The language configured to be used by default won't be reported.
@@ -2005,12 +1974,10 @@ For example, the latin letter "h" can also be presented as "𝐡" (bold), "ℎ" 
 This aspect of normalization also aids in reading equations in the Microsoft Word equation editor.
 
 1. Normalization to composed characters.
-   For example, the character "ü" (u with umlaut/diaeresis), a common character in languages like German and Turkish can be represented in two forms:
-
-   1. One stand alone unicode character (ü)
-   1. A decomposition into two characters (ü), namely the normal latin letter u and a diaeresis modifier
-
-   Unicode normalization ensures that only one form will be used throughout all speech output, which is the one character variant.
+For example, the character "ü" (u with umlaut/diaeresis), a common character in languages like German and Turkish can be represented in two forms:
+  1. One stand alone unicode character (ü)
+  1. A decomposition into two characters (ü), namely the normal latin letter u and a diaeresis modifier
+  Unicode normalization ensures that only one form will be used throughout all speech output, which is the one character variant.
 
 1. Decomposition of some ligatures, Including "ĳ" (ligature ij) to their two letter form ("ij").
 
@@ -2049,7 +2016,7 @@ This edit field allows you to type the amount that the pitch of the voice will c
 This value is a percentage, where a negative value lowers the pitch and a positive value raises it.
 For no pitch change you would use 0.
 Usually, NVDA raises the pitch slightly for any capital letter, but some synthesizers may not support this well.
-In case pitch change for capitals is not supported, consider [Say "cap" before capitals](#SpeechSettingsSayCapBefore) and/or [Beep for capitals](#SpeechSettingsBeepForCaps) instead.
+In case pitch change for capitals is not supported, consider [Say "cap" before capitals](#SpeechSettingsSayCapBefore) and/or [ Beep for capitals](#SpeechSettingsBeepForCaps) instead.
 
 ##### Say "cap" before capitals {#SpeechSettingsSayCapBefore}
 
@@ -2668,7 +2635,7 @@ When enabled, NVDA will announce all non-character keys you type on the keyboard
 ##### Play sound for spelling errors while typing {#KeyboardSettingsAlertForSpellingErrors}
 
 When enabled, a short buzzer sound will be played when a word you type contains a spelling error.
-This option is only available if [reporting of spelling errors](#reportSpellingErrors) is enabled in NVDA's Document Formatting Settings.
+This option is only available if reporting of spelling errors is enabled in NVDA's [Document Formatting Settings](#DocumentFormattingSettings), found in the NVDA Settings dialog.
 
 ##### Handle keys from other applications {#KeyboardSettingsHandleKeys}
 
@@ -2826,11 +2793,6 @@ This option lets you choose whether you wish to have an object's position (e.g. 
 If reporting of object position information is turned on, this option allows NVDA to guess object position information when it is otherwise unavailable for a particular control.
 
 When on, NVDA will report position information for more controls such as menus and toolbars, however this information may be slightly inaccurate.
-
-##### Report when lists support multiple selection {#ReportMultiSelect}
-
-When this option is enabled, NVDA will report when a list box supports selecting multiple items.
-As it is usually possible to infer multiple selection support from the context of a list box, this option is disabled by default.
 
 ##### Report Object descriptions {#ObjectPresentationReportDescriptions}
 
@@ -3016,7 +2978,7 @@ You can configure reporting of:
   * Comments
   * Bookmarks
   * Editor revisions
-  * Spelling errors [(Off, Speech, Sound)](#reportSpellingErrors)
+  * Spelling errors
 * Pages and spacing
   * Page numbers
   * Line numbers
@@ -3064,18 +3026,6 @@ If enabled, this setting tells NVDA to try and detect all the formatting changes
 By default, NVDA will detect the formatting at the position of the System caret / Review Cursor, and in some instances may detect formatting on the rest of the line, only if it is not going to cause a performance decrease.
 
 Enable this option while proof reading documents in applications such as WordPad, where formatting is important.
-
-##### Spelling error reporting {#reportSpellingErrors}
-
-This option allows you to configure how spelling errors are reported while reading text.
-This checklist box has two options:
-
-* Speech: NVDA will say "spelling error" when a spelling error is encountered while reading text
-* Sound: NVDA will play a short buzzer sound when a spelling error is encountered while reading text
-
-When navigating word by word or character by character, "out of spelling error" is also reported if the "Speech" or "Sound" option is selected.
-
-Due to performance limitations, spelling errors are not reported when navigating by paragraph or by cell in tables, no matter the choice selected in this checklist box.
 
 ##### Line indentation reporting {#DocumentFormattingSettingsLineIndentation}
 
@@ -3202,15 +3152,6 @@ This option controls whether confirmation is required before disconnecting from 
 
 When checked, NVDA will ask for confirmation before disconnecting.
 When unchecked, NVDA will disconnect immediately without confirmation.
-
-##### Mute when controlling the local computer {#RemoteMuteOnLocalControl}
-
-This option controls whether you can hear speech and sounds from the remote computer when controlling the local computer.
-
-When checked, Remote Access will be muted automatically when first connecting as the controlling computer, and when switching to controlling the local computer.
-When unchecked, Remote Access sessions start unmuted, and must be muted explicitly.
-
-You can still manually mute or unmute Remote Access when controlling the local computer [via the Remote Access menu](#RemoteAccessUsage), or by assigning a custom gesture using the [Input Gestures dialog](#InputGestures).
 
 ##### Automatically connect after NVDA starts {#RemoteAutoconnect}
 
@@ -3362,7 +3303,7 @@ This setting contains the following values:
 
 * Default (where suitable)
 * Only where necessary: where the Microsoft Word object model is not available at all
-* Where suitable: Microsoft Word version 16.0.15000 or higher on Windows 11, or where the Microsoft Word object model is unavailable
+* Where suitable: Microsoft Word version 16.0.15000 or higher, or where the Microsoft Word object model is unavailable
 * Always: where ever UI automation is available in Microsoft word (no matter how complete).
 
 ##### Use UI automation to access Microsoft Excel spreadsheet controls when available {#UseUiaForExcel}
@@ -3513,8 +3454,6 @@ This can allow SAPI 4 voices to work with more features, such as audio ducking, 
 However, some SAPI 4 voices might not work with the current WASAPI implementation.
 If you find that the SAPI 4 voice you are using stops working, you may disable this option.
 
-Note that in Speech settings, there is a similar [option for SAPI 5 voices](#SpeechSettingsUseWasapi), not to be confused with this one.
-
 | . {.hideHeaderRow} |.|
 |---|---|
 |Options |Default (Enabled), Disabled, Enabled|
@@ -3588,7 +3527,7 @@ Thus, using the earlier example of replacing the word "bird" with "frog", if you
 
 A regular expression is a pattern containing special symbols that allow you to match on more than one character at a time, or match on just numbers, or just letters, as a few examples.
 Regular expressions are not covered in this user guide.
-For an introductory tutorial, please refer to [Python's Regular Expression Guide](https://docs.python.org/3.13/howto/regex.html).
+For an introductory tutorial, please refer to [Python's Regular Expression Guide](https://docs.python.org/3.11/howto/regex.html).
 
 #### Punctuation/symbol pronunciation {#SymbolPronunciation}
 
@@ -3821,12 +3760,10 @@ In this case, the other person has either started the connection via a relay ser
 
 1. For Server, choose "Use existing".
 1. In the Host field, Enter the host address (and port if also given).
-
-   * You may include the port to connect on by appending a colon (":") and the port number to the host address.
-     For example, `example.com:1234`.
-
+  * You may include the port to connect on by appending a colon (":") and the port number to the host address.
+For example, `example.com:1234`.
 1. In the Key field, enter the key provided.
-   Be careful to type the key exactly as given.
+Be careful to type the key exactly as given.
 1. Press OK.
 
 #### Starting a Connection Via a Relay Server {#RemoteAccessConnectRelay}
@@ -3835,16 +3772,12 @@ If allowing another person to connect to you over the internet, the easiest opti
 
 1. For Server, choose "Use existing".
 1. For host, provide the host name of a relay server, such as `nvdaremote.com`.
-   You will need to provide this address to the other person.
-
-   * You may include the port to connect on by appending a colon (":") and the port number to the host.
-     For example, `example.com:1234`.
-
+You will need to provide this address to the other person.
+  * You may include the port to connect on by appending a colon (":") and the port number to the host.
+For example, `example.com:1234`.
 1. For key: come up with a long, hard to guess key, or press the "Generate Key" button to have one automatically generated.
-   You will need to provide this to the other person.
-
-   * Note that the key acts as both the identifier for the session and the password, so it is very important it is hard to guess.
-
+You will need to provide this to the other person.
+  * Note that the key acts as both the identifier for the session and the password, so it is very important it is hard to guess.
 1. Press OK.
 1. Provide the connection details (such as host and key) to the other person so they can connect.
 
@@ -3858,19 +3791,15 @@ You will need to provide this external IP to the other person.
 1. If connecting over a local network, you will need to provide the other person with your local IP.
 Locating this is not covered in this documentation.
 1. For Port, enter the port you want to use for incoming Remote connections.
-   The other person will also need this.
-
-   * This should be a port that is not used by any other services.
-   * By default, Remote Access uses port 6837.
-   * If connecting over the internet, the port may need to be forwarded.
-     This documentation does not cover how to forward ports.
-     You may need to contact your network administrator to do this.
-
+The other person will also need this.
+  * This should be a port that is not used by any other services.
+  * By default, Remote Access uses port 6837.
+  * If connecting over the internet, the port may need to be forwarded.
+  This documentation does not cover how to forward ports.
+  You may need to contact your network administrator to do this.
 1. For key: come up with a long, hard to guess key, or press the "Generate Key" button to have one automatically generated.
-   You will need to provide this to the other person.
-
-   * Note that the key acts as both the identifier for the session and the password, so it is very important it is hard to guess.
-
+You will need to provide this to the other person.
+  * Note that the key acts as both the identifier for the session and the password, so it is very important it is hard to guess.
 1. Press OK.
 1. Provide the connection details (such as host and key) to the other person so they can connect.
 
@@ -3897,7 +3826,6 @@ Once a Remote Access session is active, you can switch between controlling the r
 | Disconnect | None | Ends an existing Remote Access session. |
 | Mute remote | None | Mutes or unmutes the speech coming from the remote computer. |
 | Send clipboard | None | Sends the contents of the clipboard to the remote computer. |
-| Send `control+alt+delete` | None | Sends `control+alt+delete` to the controlled computer. |
 <!-- KC:endInclude -->
 
 ## Add-ons and the Add-on Store {#AddonsManager}
@@ -3918,28 +3846,6 @@ If you install an add-on with paid components and change your mind about using i
 
 The Add-on Store is accessed from the Tools submenu of the NVDA menu.
 To access the Add-on Store from anywhere, assign a custom gesture using the [Input Gestures dialog](#InputGestures).
-
-### Security warning for add-ons {#AddonStoreSecurityWarning}
-
-Add-ons listed in the Add-on Store have not been vetted by NV Access or anyone else.
-It is very important to only install add-ons from sources you trust.
-The functionality of add-ons is unrestricted inside NVDA.
-This could include accessing and modifying your personal data or even the entire system.
-
-Add-ons submitted to the Add-on Store are scanned by [VirusTotal](https://www.virustotal.com/).
-This can detect malware that was known when the add-on was submitted.
-However, VirusTotal results may be inaccurate or out of date.
-For example, an add-on that is marked as malicious might not be malicious, and an add-on that is not marked as malicious might actually be malicious.
-You can view a summary of the scan results for a scanned add-on by reviewing the add-on's details.
-You can view the VirusTotal scan results directly using the "VirusTotal scan results" [action from the context menu](#AddonStoreActions).
-
-There are a number of other ways of investigating the safety of an add-on:
-
-* Research the developer's reputation (e.g. how long have they been contributing)
-* Look for user feedback in the [NVDA user group](https://groups.google.com/a/nvaccess.org/g/nvda-users) or the [NVDA add-on group](https://nvda-addons.groups.io/g/nvda-addons)
-* Verify that the add-on is regularly updated
-* Read [Community reviews](#AddonStoreReviews) of the add-on
-* Seek community feedback through forums or social media
 
 ### Browsing add-ons {#AddonStoreBrowsing}
 
@@ -4008,9 +3914,10 @@ This menu can also be accessed through an Actions button in the selected add-on'
 
 #### Installing add-ons {#AddonStoreInstalling}
 
-Note: Add-ons are programs that can modify and access your device like any other software you download.
-Make sure to only install add-ons from sources you trust.
-Please read [our security warning](#AddonStoreSecurityWarning) for more details before installing add-ons.
+Just because an add-on is available in the NVDA Add-on Store, does not mean that it has been approved or vetted by NV Access or anyone else.
+It is very important to only install add-ons from sources you trust.
+The functionality of add-ons is unrestricted inside NVDA.
+This could include accessing your personal data or even the entire system.
 
 You can install and update add-ons by [browsing Available add-ons](#AddonStoreBrowsing).
 Select an add-on from the "Available add-ons" or "Updatable add-ons" tab.
@@ -4078,11 +3985,6 @@ From an add-on's actions menu, using the submenu "Update channel", you can modif
 | Beta | Add-on will automatically update to beta versions |
 | Dev | Add-on will automatically update to dev versions |
 
-#### What's new in the current version {#AddonStoreChangelog}
-
-If an add-on lists what's new for the current version, an action will be available to show these changes in browse mode.
-The title of that message will indicate the add-on version, and it will be possible to copy the presented info, and close the message window, via dedicated buttons.
-
 ### Incompatible Add-ons {#incompatibleAddonsManager}
 
 Some older add-ons may no longer be compatible with the version of NVDA that you have.
@@ -4102,7 +4004,6 @@ You can browse available incompatible add-ons using the [available and updatable
 You can browse installed incompatible add-ons using the [incompatible add-ons tab](#AddonStoreFilterStatus).
 
 ## Extra Tools {#ExtraTools}
-
 ### Log Viewer {#LogViewer}
 
 The log viewer, found under Tools in the NVDA menu, allows you to view the logging output that has occurred since the latest session of NVDA was started.
@@ -4221,6 +4122,7 @@ For an even more extensive list of free and commercial synthesizers that you can
 ### eSpeak NG {#eSpeakNG}
 
 The [eSpeak NG](https://github.com/espeak-ng/espeak-ng) synthesizer is built directly into NVDA and does not require any other special drivers or components to be installed.
+On Windows 8.1 NVDA uses eSpeak NG by default ([Windows OneCore](#OneCore) is used in Windows 10 and later by default).
 As this synthesizer is built into NVDA, this is a great choice for when running NVDA off a USB thumb drive on other systems.
 
 Each voice that comes with eSpeak NG speaks a different language.
@@ -4259,7 +4161,7 @@ To use these voices, you will need to install two components:
 
 Windows 10 and later includes voices known as "OneCore" or "mobile" voices.
 Voices are provided for many languages, and they are more responsive than the Microsoft voices available using Microsoft Speech API version 5.
-NVDA uses Windows OneCore voices by default.
+On Windows 10 and later, NVDA uses Windows OneCore voices by default ([eSpeak NG](#eSpeakNG) is used in other releases).
 
 To add new Windows OneCore voices, go to "Speech Settings", within Windows system settings.
 Use the "Add voices" option and search for the desired language.
@@ -5353,6 +5255,8 @@ The braille keyboard functions described directly below is when "HID Keyboard si
 ### Nattiq nBraille Displays {#NattiqTechnologies}
 
 NVDA supports displays from [Nattiq Technologies](https://www.nattiq.com/) when connected via USB.
+Windows 10 and later detects the Braille Displays once connected, you may need to install USB drivers if using older versions of Windows (below Win10).
+You can get them from the manufacturer's website.
 
 Following are the key assignments for Nattiq Technologies displays with NVDA.
 Please see the display's documentation for descriptions of where these keys can be found.
@@ -5540,11 +5444,8 @@ You can configure whether NVDA displays braille on the dedicated braille display
 
 Panning keys are supported, but due to limited buttons on the device, other commands and routing capabilities are currently not available.
 
-The Dot Pad driver supports automatic detection of USB-connected devices.
-However, automatic detection is disabled by default due to the device using generic USB identifiers that could conflict with other devices.
-To enable automatic detection, go to NVDA's Braille settings and check "Dot Pad" in the automatic detection list.
-When automatic detection is enabled and a compatible device is detected, NVDA will automatically connect to it.
-You can also manually select a specific USB or Bluetooth virtual serial port if needed.
+When selecting the Dot Pad driver in NVDA, you must manually select the USB / Bluetooth virtual serial port the Dot Pad is connected to.
+This driver does not support auto detection.
 
 Please note that due to hardware limitations, the Dot Pad will not refresh all dots correctly while your hand is on the device.
 Make sure to lift your hand entirely off the device when navigating with NVDA, and only start reading again once it has fully updated.
@@ -5559,7 +5460,6 @@ Make sure to lift your hand entirely off the device when navigating with NVDA, a
 <!-- KC:endInclude -->
 
 ## Advanced Topics {#AdvancedTopics}
-
 ### Secure Mode {#SecureMode}
 
 System administrators may wish to configure NVDA to restrict unauthorized system access.
@@ -5658,23 +5558,15 @@ Following are the command line options for NVDA:
 |None |`--no-sr-flag` |Don't change the global system screen reader flag|
 |None |`--install` |Installs NVDA (starting the newly installed copy)|
 |None |`--install-silent` |Silently installs NVDA (does not start the newly installed copy)|
-|None |`--enable-start-on-logon=True|False` |When installing, enable NVDA's [Use NVDA during Windows sign-in](#StartAtWindowsLogon)| <!-- markdownlint-disable-line MD055 MD056 -->
+|None |`--enable-start-on-logon=True|False` |When installing, enable NVDA's [Use NVDA during Windows sign-in](#StartAtWindowsLogon)|
 |None |`--copy-portable-config` |When installing, copy the portable configuration from the provided path (`--config-path`, `-c`) to the current user account|
 |None |`--create-portable` |Creates a portable copy of NVDA (and starts the new copy). Requires `--portable-path` to be specified|
 |None |`--create-portable-silent` |Creates a portable copy of NVDA (without starting the new copy). Requires `--portable-path` to be specified. This option suppresses warnings when writing to non-empty directories and may overwrite files without warning.|
 |None |`--portable-path=PORTABLEPATH` |The path where a portable copy will be created|
 
-### Uninstalling NVDA {#UninstallingNVDA}
-
-NVDA's uninstaller is called `uninstall.exe` and resides under the NVDA installation directory, `%ProgramFiles(x86)%\nvda` on 64-bit Windows, or `%ProgramFiles%\nvda` on 32-bit Windows.
-
-Note: It is possible to stop NVDA from starting automatically without needing to uninstall NVDA.
-To stop NVDA starting automatically, please refer to the options: [Start NVDA after I sign in](#GeneralSettingsStartAfterLogOn) and [Use NVDA during sign-in](#GeneralSettingsStartOnLogOnScreen) in NVDA's general settings.
-
 Just as you can silently install NVDA by passing the `--install-silent` command line option to NVDA, it can be silently uninstalled by passing the `/S` command to the uninstaller.
 
-Installed copies of NVDA store their configuration including add-ons in `%APPDATA%\nvda`.
-These files are not removed by NVDA's uninstaller.
+NVDA's uninstaller is called `uninstall.exe` and resides under the NVDA installation directory, `%ProgramFiles(x86)%\nvda` on 64-bit Windows, or `%ProgramFiles%\nvda` on 32-bit Windows.
 
 The following are the command line options for NVDA's uninstaller:
 

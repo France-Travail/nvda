@@ -1,5 +1,5 @@
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2006-2025 NV Access Limited, Babbage B.V., Cyrille Bougot, Leonard de Ruijter
+# Copyright (C) 2006-2023 NV Access Limited, Babbage B.V., Cyrille Bougot, Leonard de Ruijter
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
@@ -9,15 +9,17 @@ from typing import (
 	Union,
 )
 
+import comtypes.client
 import ctypes
-from comtypes import BSTR, COMError
+from comtypes import COMError
+import oleTypes
 import colors
+import NVDAHelper
 import eventHandler
 import comInterfaces.tom
 from logHandler import log
 import languageHandler
 import config
-import winBindings.oleacc
 import winKernel
 import api
 import winUser
@@ -32,8 +34,6 @@ from ..behaviors import EditableTextWithAutoSelectDetection
 import watchdog
 import locationHelper
 import textUtils
-import NVDAHelper.localLib
-
 
 selOffsetsAtLastCaretEvent = None
 
@@ -466,7 +466,7 @@ class EditTextInfo(textInfos.offsets.OffsetsTextInfo):
 
 	def _getStoryText(self):
 		if controlTypes.State.PROTECTED in self.obj.states:
-			return "*" * self._getStoryLength()
+			return "*" * (self._getStoryLength() - 1)
 		return self.obj.windowText
 
 	def _getStoryLength(self):
@@ -501,12 +501,18 @@ class EditTextInfo(textInfos.offsets.OffsetsTextInfo):
 				)
 			finally:
 				winKernel.virtualFreeEx(processHandle, internalInfo, 0, winKernel.MEM_RELEASE)
-			return textLen
+			# Py3 review: investigation with Python 2 NVDA revealed that
+			# adding 1 to this creates an off by one error.
+			# Tested using Wordpad, enforcing EditTextInfo as the textInfo implementation.
+			return textLen + 1
 		else:
 			# ForWM_GETTEXTLENGTH documentation, see
 			# https://docs.microsoft.com/en-us/windows/desktop/winmsg/wm-gettextlength
 			# It determines the length, in characters, of the text associated with a window.
-			return watchdog.cancellableSendMessage(self.obj.windowHandle, winUser.WM_GETTEXTLENGTH, 0, 0)
+			# Py3 review: investigation with Python 2 NVDA revealed that
+			# adding 1 to this created an off by one error.
+			# Tested using Notepad
+			return watchdog.cancellableSendMessage(self.obj.windowHandle, winUser.WM_GETTEXTLENGTH, 0, 0) + 1
 
 	def _getLineCount(self):
 		return self.obj.windowTextLineCount
@@ -796,7 +802,7 @@ class ITextDocumentTextInfo(textInfos.TextInfo):
 		label = None
 		try:
 			o = embedRangeObj.GetEmbeddedObject()
-		except COMError:
+		except comtypes.COMError:
 			o = None
 		if not o:
 			return None
@@ -805,7 +811,7 @@ class ITextDocumentTextInfo(textInfos.TextInfo):
 
 		try:
 			label = o.QueryInterface(oleacc.IAccessible).accName(0)
-		except COMError:
+		except comtypes.COMError:
 			pass
 		if label:
 			return label
@@ -828,25 +834,23 @@ class ITextDocumentTextInfo(textInfos.TextInfo):
 		if label and not label.isspace():
 			return label
 		# Windows Live Mail exposes the label via the embedded object's data (IDataObject)
-		text = BSTR()
 		try:
-			NVDAHelper.localLib.getOleClipboardText(o, ctypes.byref(text))
-		except WindowsError:
-			pass
-		else:
+			dataObj = o.QueryInterface(oleTypes.IDataObject)
+		except comtypes.COMError:
+			dataObj = None
+		if dataObj:
+			text = comtypes.BSTR()
+			NVDAHelper.localLib.getOleClipboardText(dataObj, ctypes.byref(text))
 			label = text.value
 		if label:
 			return label
-		# As a final fallback (e.g. could not get display model text for Outlook Express), use the embedded object's user type (e.g. "recipient").
-		userType = BSTR()
+		# As a final fallback (e.g. could not get display  model text for Outlook Express), use the embedded object's user type (e.g. "recipient").
 		try:
-			NVDAHelper.localLib.getOleUserType(o, 0, ctypes.byref(userType))
-		except WindowsError:
+			oleObj = o.QueryInterface(oleTypes.IOleObject)
+			label = oleObj.GetUserType(1)
+		except comtypes.COMError:
 			pass
-		else:
-			label = userType.value
-		if label:
-			return label
+		return label
 
 	def _getTextAtRange(self, rangeObj):
 		embedRangeObj = None
@@ -1052,7 +1056,7 @@ class Edit(EditableTextWithAutoSelectDetection, EditBase):
 		if not hasattr(self, "_ITextDocumentObject"):
 			try:
 				ptr = ctypes.POINTER(comInterfaces.tom.ITextDocument)()
-				winBindings.oleacc.AccessibleObjectFromWindow(
+				ctypes.windll.oleacc.AccessibleObjectFromWindow(
 					self.windowHandle,
 					-16,
 					ctypes.byref(ptr._iid_),

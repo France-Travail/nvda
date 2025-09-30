@@ -1,5 +1,5 @@
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2006-2025 NV Access Limited, Yogesh Kumar, Manish Agrawal, Joseph Lee, Davy Kager,
+# Copyright (C) 2006-2021 NV Access Limited, Yogesh Kumar, Manish Agrawal, Joseph Lee, Davy Kager,
 # Babbage B.V., Leonard de Ruijter
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
@@ -9,8 +9,8 @@ from comtypes.hresult import S_OK
 import comtypes.client
 import comtypes.automation
 import ctypes
+import winVersion
 from scriptHandler import script
-import winBindings.kernel32
 import winKernel
 import comHelper
 import NVDAHelper
@@ -41,12 +41,10 @@ from NVDAObjects.IAccessible.MSHTML import MSHTML
 from NVDAObjects.behaviors import RowWithFakeNavigation, Dialog
 from NVDAObjects.UIA import UIA
 from NVDAObjects.UIA.wordDocument import WordDocument as UIAWordDocument
-from NVDAObjects import NVDAObject
 import languageHandler
 from typing import Generator
 import documentBase
 import browseMode
-import vision
 
 PR_LAST_VERB_EXECUTED = 0x10810003
 VERB_REPLYTOSENDER = 102
@@ -114,7 +112,7 @@ class AppModule(appModuleHandler.AppModule):
 	def isGoodUIAWindow(self, hwnd: int) -> bool:
 		windowClass = winUser.getClassName(hwnd)
 		versionMajor = int(self.productVersion.split(".")[0])
-		if versionMajor >= 16 and windowClass == "RICHEDIT60W":
+		if versionMajor >= 16 and windowClass == "RICHEDIT60W" and winVersion.getWinVer() >= winVersion.WIN10:
 			# #12726: RICHEDIT60W In Outlook 2016+ on Windows 10+
 			# has a very good UI Automation implementation,
 			# Though oddly IsServerSideProvider returns false for these windows.
@@ -231,9 +229,6 @@ class AppModule(appModuleHandler.AppModule):
 			windowClassName.startswith("REListBox") or windowClassName.startswith("NetUIHWND")
 		):
 			clsList.insert(0, AutoCompleteListItem)
-		if role == controlTypes.Role.EDITABLETEXT and windowClassName.startswith("RichEdit20W"):
-			clsList.insert(0, ContactEditField)
-
 		#  all   remaining classes are IAccessible
 		if not isinstance(obj, IAccessible):
 			return
@@ -329,23 +324,6 @@ class AddressBookEntry(IAccessible):
 			self.bindGesture(gesture, "moveByEntry")
 
 
-class ContactEditField(NVDAObject):
-	@script(gestures=["kb:escape"])
-	def script_hide(self, gesture):
-		"""The auto-complete list is getting closed, set focus back to the edit field."""
-		if vision.handler:
-			vision.handler.handleGainFocus(self)
-		api.setNavigatorObject(self)
-		gesture.send()
-
-	def event_valueChange(self):
-		"""Set focus back to the edit field when an auto-complete list item is confirmed."""
-		if vision.handler:
-			vision.handler.handleGainFocus(self)
-		api.setNavigatorObject(self)
-		super().event_valueChange()
-
-
 class AutoCompleteListItem(Window):
 	def event_stateChange(self):
 		states = self.states
@@ -363,10 +341,6 @@ class AutoCompleteListItem(Window):
 			if not text:
 				text = self.parent.name
 			ui.message(text)
-
-			if vision.handler:
-				vision.handler.handleGainFocus(self)
-			api.setNavigatorObject(self)
 
 
 class CalendarView(IAccessible):
@@ -431,7 +405,7 @@ class CalendarView(IAccessible):
 		bufLength = 4
 		separatorBuf = ctypes.create_unicode_buffer(bufLength)
 		if (
-			winBindings.kernel32.GetLocaleInfo(
+			ctypes.windll.kernel32.GetLocaleInfoW(
 				languageHandler.LOCALE_USER_DEFAULT,
 				languageHandler.LOCALE.SLIST,
 				separatorBuf,

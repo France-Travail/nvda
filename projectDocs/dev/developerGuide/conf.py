@@ -44,27 +44,26 @@ globalVars.appDir = _appDir
 
 
 # Import NVDA's versionInfo module.
-import buildVersion  # noqa: E402
 import versionInfo  # noqa: E402
 
 # Set a suitable updateVersionType for the updateCheck module to be imported
-buildVersion.updateVersionType = "stable"
+versionInfo.updateVersionType = "stable"
 
 # -- Project information -----------------------------------------------------
 
-project = buildVersion.name
+project = versionInfo.name
 copyright = versionInfo.copyright
-author = buildVersion.publisher
+author = versionInfo.publisher
 
 # The major project version
-version = buildVersion.formatVersionForGUI(
-	buildVersion.version_year,
-	buildVersion.version_major,
-	buildVersion.version_minor,
+version = versionInfo.formatVersionForGUI(
+	versionInfo.version_year,
+	versionInfo.version_major,
+	versionInfo.version_minor,
 )
 
 # The full version, including alpha/beta/rc tags
-release = buildVersion.version
+release = versionInfo.version
 
 # -- General configuration ---------------------------------------------------
 

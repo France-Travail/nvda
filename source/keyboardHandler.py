@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 # A part of NonVisual Desktop Access (NVDA)
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
@@ -14,6 +15,7 @@ from typing import (
 	List,
 	Optional,
 	Any,
+	TypeAlias,
 )
 
 import winVersion
@@ -34,9 +36,7 @@ import core
 import NVDAState
 from contextlib import contextmanager
 import threading
-import winBindings.kernel32
 import winKernel
-from winBindings import user32
 
 if typing.TYPE_CHECKING:
 	from NVDAObjects import NVDAObject  # noqa: F401
@@ -46,7 +46,7 @@ _watchdogObserver: typing.Optional["WatchdogObserver"] = None
 ignoreInjected = False
 _lastInjectedKeyUp: tuple[int, int] | None = None
 _injectionDoneEvent: int | None = None
-type _ModifierT = tuple[int, bool]
+_ModifierT: TypeAlias = tuple[int, bool]
 
 # Fake vk codes.
 # These constants should be assigned to the name that NVDA will use for the key.
@@ -298,14 +298,14 @@ def internal_keyDownEvent(vkCode, scanCode, extended, injected):
 			and not isNVDAModifierKey(vkCode, extended)
 			and vkCode not in KeyboardInputGesture.NORMAL_MODIFIER_KEYS
 		):
-			keyStates = (ctypes.c_ubyte * 256)()
+			keyStates = (ctypes.c_byte * 256)()
 			for k in range(256):
-				keyStates[k] = user32.GetKeyState(k)
+				keyStates[k] = ctypes.windll.user32.GetKeyState(k)
 			charBuf = ctypes.create_unicode_buffer(5)
-			hkl = user32.GetKeyboardLayout(focus.windowThreadID)
+			hkl = ctypes.windll.user32.GetKeyboardLayout(focus.windowThreadID)
 			# In previous Windows builds, calling ToUnicodeEx would destroy keyboard buffer state and therefore cause the app to not produce the right WM_CHAR message.
 			# However, ToUnicodeEx now can take a new flag of 0x4, which stops it from destroying keyboard state, thus allowing us to safely call it here.
-			res = user32.ToUnicodeEx(
+			res = ctypes.windll.user32.ToUnicodeEx(
 				vkCode,
 				scanCode,
 				keyStates,
@@ -344,7 +344,7 @@ def internal_keyUpEvent(vkCode, scanCode, extended, injected):
 				return True
 			if ignoreInjected:
 				if keyCode == _lastInjectedKeyUp:
-					winBindings.kernel32.SetEvent(_injectionDoneEvent)
+					winKernel.kernel32.SetEvent(_injectionDoneEvent)
 				return True
 
 		if passKeyThroughCount >= 1:
@@ -402,7 +402,7 @@ def getInputHkl():
 		thread = focus.windowThreadID
 	else:
 		thread = 0
-	return user32.GetKeyboardLayout(thread)
+	return winUser.user32.GetKeyboardLayout(thread)
 
 
 def canModifiersPerformAction(modifiers):
@@ -528,10 +528,8 @@ class KeyboardInputGesture(inputCore.InputGesture):
 		if self.vkCode == vkCodes.VK_PACKET:
 			# Unicode character from non-keyboard input.
 			return chr(self.scanCode)
-		vkChar = user32.MapVirtualKeyEx(self.vkCode, winUser.MAPVK_VK_TO_CHAR, getInputHkl())
-		# the highest bit of a 32 bit value denotes a dead key
-		DEAD_KEY_FLAG = 0x80000000
-		if vkChar > 0 and not (vkChar & DEAD_KEY_FLAG):
+		vkChar = winUser.user32.MapVirtualKeyExW(self.vkCode, winUser.MAPVK_VK_TO_CHAR, getInputHkl())
+		if vkChar > 0:
 			if vkChar == 43:  # "+"
 				# A gesture identifier can't include "+" except as a separator.
 				return "plus"
@@ -647,7 +645,7 @@ class KeyboardInputGesture(inputCore.InputGesture):
 			# it is already too late.
 			with ignoreInjection():
 				winUser.keybd_event(winUser.VK_NONE, 0, 0, 0)
-				winUser.keybd_event(winUser.VK_NONE, 0, user32.KEYEVENTF.KEYUP, 0)
+				winUser.keybd_event(winUser.VK_NONE, 0, winUser.KEYEVENTF_KEYUP, 0)
 		# Now actually execute the script.
 		super().executeScript(script)
 
@@ -803,7 +801,7 @@ def injectRawKeyboardInput(isPress, code, isExtended):
 	if isExtended:
 		# Change what we pass to MapVirtualKeyEx, but don't change what NVDA gets.
 		mapScan |= 0xE000
-	vkCode = user32.MapVirtualKeyEx(mapScan, winUser.MAPVK_VSC_TO_VK_EX, getInputHkl())
+	vkCode = winUser.user32.MapVirtualKeyExW(mapScan, winUser.MAPVK_VSC_TO_VK_EX, getInputHkl())
 	flags = 0
 	if not isPress:
 		flags |= 2

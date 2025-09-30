@@ -1,5 +1,5 @@
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2006-2025 NV Access Limited
+# Copyright (C) 2006-2019 NV Access Limited
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
@@ -8,22 +8,10 @@ When working on this file, consider moving to winAPI.
 """
 
 import threading
-from ctypes import (
-	Structure,
-	byref,
-	c_void_p,
-)
-from ctypes.wintypes import (
-	MSG,
-	DWORD,
-	POINT,
-)
-
-import winBindings.user32
+from ctypes import *  # noqa: F403
+from ctypes.wintypes import *  # noqa: F403
 import watchdog
 import winUser
-from winBindings import user32, kernel32
-
 
 # Some Windows constants
 HC_ACTION = 0
@@ -55,18 +43,15 @@ class MSLLHOOKSTRUCT(Structure):  # noqa: F405
 	]
 
 
-LRESULT = c_void_p
-
-
 keyDownCallback = None
 keyUpCallback = None
 mouseCallback = None
 
 
-@user32.HOOKPROC
+@WINFUNCTYPE(c_long, c_int, WPARAM, LPARAM)  # noqa: F405
 def keyboardHook(code, wParam, lParam):
 	if code != HC_ACTION:
-		return user32.CallNextHookEx(0, code, wParam, lParam)  # noqa: F405
+		return windll.user32.CallNextHookEx(0, code, wParam, lParam)  # noqa: F405
 	kbd = KBDLLHOOKSTRUCT.from_address(lParam)
 	if keyUpCallback and kbd.flags & LLKHF_UP:
 		if not keyUpCallback(
@@ -84,18 +69,18 @@ def keyboardHook(code, wParam, lParam):
 			bool(kbd.flags & LLKHF_INJECTED),
 		):
 			return 1
-	return user32.CallNextHookEx(0, code, wParam, lParam)  # noqa: F405
+	return windll.user32.CallNextHookEx(0, code, wParam, lParam)  # noqa: F405
 
 
-@user32.HOOKPROC
+@WINFUNCTYPE(c_long, c_int, WPARAM, LPARAM)  # noqa: F405
 def mouseHook(code, wParam, lParam):
 	if watchdog.isAttemptingRecovery or code != HC_ACTION:
-		return user32.CallNextHookEx(0, code, wParam, lParam)  # noqa: F405
+		return windll.user32.CallNextHookEx(0, code, wParam, lParam)  # noqa: F405
 	msll = MSLLHOOKSTRUCT.from_address(lParam)
 	if mouseCallback:
 		if not mouseCallback(wParam, msll.pt.x, msll.pt.y, msll.flags & LLMHF_INJECTED):
 			return 1
-	return user32.CallNextHookEx(0, code, wParam, lParam)  # noqa: F405
+	return windll.user32.CallNextHookEx(0, code, wParam, lParam)  # noqa: F405
 
 
 hookThread = None
@@ -103,28 +88,28 @@ hookThreadRefCount = 0
 
 
 def hookThreadFunc():
-	keyHookID = user32.SetWindowsHookEx(  # noqa: F405
+	keyHookID = windll.user32.SetWindowsHookExW(  # noqa: F405
 		WH_KEYBOARD_LL,
 		keyboardHook,
-		kernel32.GetModuleHandle(None),  # noqa: F405
+		windll.kernel32.GetModuleHandleW(None),  # noqa: F405
 		0,  # noqa: F405
 	)  # noqa: F405
 	if keyHookID == 0:
 		raise OSError("Could not register keyboard hook")
-	mouseHookID = user32.SetWindowsHookEx(  # noqa: F405
+	mouseHookID = windll.user32.SetWindowsHookExW(  # noqa: F405
 		WH_MOUSE_LL,
 		mouseHook,
-		kernel32.GetModuleHandle(None),  # noqa: F405
+		windll.kernel32.GetModuleHandleW(None),  # noqa: F405
 		0,  # noqa: F405
 	)  # noqa: F405
 	if mouseHookID == 0:
 		raise OSError("Could not register mouse hook")
 	msg = MSG()  # noqa: F405
-	while winBindings.user32.GetMessage(byref(msg), None, 0, 0):  # noqa: F405
+	while windll.user32.GetMessageW(byref(msg), None, 0, 0):  # noqa: F405
 		pass
-	if user32.UnhookWindowsHookEx(keyHookID) == 0:  # noqa: F405
+	if windll.user32.UnhookWindowsHookEx(keyHookID) == 0:  # noqa: F405
 		raise OSError("could not unregister key hook %s" % keyHookID)
-	if user32.UnhookWindowsHookEx(mouseHookID) == 0:  # noqa: F405
+	if windll.user32.UnhookWindowsHookEx(mouseHookID) == 0:  # noqa: F405
 		raise OSError("could not unregister mouse hook %s" % mouseHookID)
 
 
@@ -156,6 +141,6 @@ def terminate():
 		raise RuntimeError("winInputHook not running")
 	hookThreadRefCount -= 1
 	if hookThreadRefCount == 0:
-		user32.PostThreadMessage(hookThread.ident, winUser.WM_QUIT, 0, 0)  # noqa: F405
+		windll.user32.PostThreadMessageW(hookThread.ident, winUser.WM_QUIT, 0, 0)  # noqa: F405
 		hookThread.join()
 		hookThread = None

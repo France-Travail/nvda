@@ -1,13 +1,11 @@
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2006-2025 NV Access Limited, Babbage B.V., Bill Dengler, Cyrille Bougot
+# Copyright (C) 2006-2023 NV Access Limited, Babbage B.V., Bill Dengler, Cyrille Bougot
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
 import re
 import ctypes
 import ctypes.wintypes
-from winBindings import user32
-from winBindings.user32 import _GhostWindowFromHungWindow
 import winKernel
 import winUser
 from logHandler import log  # noqa: F401
@@ -25,11 +23,16 @@ from diffHandler import prefer_difflib
 re_WindowsForms = re.compile(r"^WindowsForms[0-9]*\.(.*)\.app\..*$")
 re_ATL = re.compile(r"^ATL:(.*)$")
 
+try:
+	GhostWindowFromHungWindow = ctypes.windll.user32.GhostWindowFromHungWindow
+except AttributeError:
+	GhostWindowFromHungWindow = None
+
 
 def isUsableWindow(windowHandle):
-	if not user32.IsWindowVisible(windowHandle):
+	if not ctypes.windll.user32.IsWindowVisible(windowHandle):
 		return False
-	if _GhostWindowFromHungWindow is not None and _GhostWindowFromHungWindow(windowHandle):
+	if GhostWindowFromHungWindow and ctypes.windll.user32.GhostWindowFromHungWindow(windowHandle):
 		return False
 	return True
 
@@ -57,6 +60,14 @@ class WindowProcessHandleContainer(object):
 		winKernel.closeHandle(self.processHandle)
 
 
+# We want to work with physical points.
+try:
+	# Windows >= Vista
+	_windowFromPoint = ctypes.windll.user32.WindowFromPhysicalPoint
+except AttributeError:
+	_windowFromPoint = ctypes.windll.user32.WindowFromPoint
+
+
 class Window(NVDAObject):
 	"""
 	An NVDAObject for a window
@@ -80,7 +91,7 @@ class Window(NVDAObject):
 		if windowClassName == "#32769":
 			return
 		# If this window has a ghost window its too dangerous to try any higher APIs
-		if _GhostWindowFromHungWindow is not None and _GhostWindowFromHungWindow(windowHandle):
+		if GhostWindowFromHungWindow and GhostWindowFromHungWindow(windowHandle):
 			return
 		if windowClassName == "EXCEL7" and (relation == "focus" or isinstance(relation, tuple)):
 			from . import excel
@@ -158,7 +169,7 @@ class Window(NVDAObject):
 				if threadInfo.hwndFocus:
 					windowHandle = threadInfo.hwndFocus
 		elif isinstance(relation, tuple):
-			windowHandle = user32.WindowFromPhysicalPoint(ctypes.wintypes.POINT(relation[0], relation[1]))
+			windowHandle = _windowFromPoint(ctypes.wintypes.POINT(relation[0], relation[1]))
 		if not windowHandle:
 			return False
 		kwargs["windowHandle"] = windowHandle
@@ -196,7 +207,7 @@ class Window(NVDAObject):
 
 	def _get_location(self):
 		r = ctypes.wintypes.RECT()
-		user32.GetWindowRect(self.windowHandle, ctypes.byref(r))
+		ctypes.windll.user32.GetWindowRect(self.windowHandle, ctypes.byref(r))
 		return RectLTWH.fromCompatibleType(r)
 
 	def _get_displayText(self):
@@ -299,7 +310,7 @@ class Window(NVDAObject):
 
 	def _get_isWindowUnicode(self):
 		if not hasattr(self, "_isWindowUnicode"):
-			self._isWindowUnicode = bool(user32.IsWindowUnicode(self.windowHandle))
+			self._isWindowUnicode = bool(ctypes.windll.user32.IsWindowUnicode(self.windowHandle))
 		return self._isWindowUnicode
 
 	def correctAPIForRelation(self, obj, relation=None):

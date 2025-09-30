@@ -3,9 +3,12 @@
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
+from typing import Optional
 import ctypes
 import ctypes.wintypes
 from ctypes import (
+	oledll,
+	windll,
 	POINTER,
 	CFUNCTYPE,  # noqa: F401
 	c_voidp,  # noqa: F401
@@ -34,15 +37,11 @@ import api
 import appModuleHandler
 import controlTypes
 import globalVars
-from winBindings import user32
-import winBindings.ole32
-import winBindings.kernel32
 import winKernel
 import winUser
 import winVersion
 import eventHandler
 from logHandler import log
-import winBindings.uiAutomationCore
 from . import utils
 from comInterfaces import UIAutomationClient as UIA
 
@@ -251,16 +250,19 @@ UIAEventIdsToNVDAEventNames: Dict[int, str] = {
 
 localEventHandlerGroupUIAEventIds = set()
 
-UIAEventIdsToNVDAEventNames.update(
-	{
-		UIA.UIA_Text_TextSelectionChangedEventId: "caret",
-	},
-)
-localEventHandlerGroupUIAEventIds.update(
-	{
-		UIA.UIA_Text_TextSelectionChangedEventId,
-	},
-)
+autoSelectDetectionAvailable = False
+if winVersion.getWinVer() >= winVersion.WIN10:
+	UIAEventIdsToNVDAEventNames.update(
+		{
+			UIA.UIA_Text_TextSelectionChangedEventId: "caret",
+		},
+	)
+	localEventHandlerGroupUIAEventIds.update(
+		{
+			UIA.UIA_Text_TextSelectionChangedEventId,
+		},
+	)
+	autoSelectDetectionAvailable = True
 
 globalEventHandlerGroupUIAEventIds = set(UIAEventIdsToNVDAEventNames) - localEventHandlerGroupUIAEventIds
 
@@ -455,7 +457,7 @@ class UIAHandler(COMObject):
 
 		# Terminate the MTA thread
 		MTAThreadHandle = ctypes.wintypes.HANDLE(
-			winBindings.kernel32.OpenThread(
+			windll.kernel32.OpenThread(
 				winKernel.SYNCHRONIZE,
 				False,
 				self.MTAThread.ident,
@@ -463,14 +465,14 @@ class UIAHandler(COMObject):
 		)
 		self.MTAThreadQueue.put_nowait(None)
 		# Wait for the MTA thread to die (while still message pumping)
-		if user32.MsgWaitForMultipleObjects(1, byref(MTAThreadHandle), False, 200, 0) != 0:
+		if windll.user32.MsgWaitForMultipleObjects(1, byref(MTAThreadHandle), False, 200, 0) != 0:
 			log.debugWarning("Timeout or error while waiting for UIAHandler MTA thread")
-		winBindings.kernel32.CloseHandle(MTAThreadHandle)
+		windll.kernel32.CloseHandle(MTAThreadHandle)
 		del self.MTAThread
 
 	def MTAThreadFunc(self):
 		try:
-			winBindings.ole32.CoInitializeEx(None, comtypes.COINIT_MULTITHREADED)
+			oledll.ole32.CoInitializeEx(None, comtypes.COINIT_MULTITHREADED)
 			self.clientObject = CoCreateInstance(
 				UIA.CUIAutomation8._reg_clsid_,
 				# Minimum interface is IUIAutomation3 (Windows 8.1).
@@ -534,7 +536,7 @@ class UIAHandler(COMObject):
 			if config.conf["UIA"]["enhancedEventProcessing"]:
 				handler = self._rateLimitedEventHandler = POINTER(IUnknown)()
 				NVDAHelper.localLib.rateLimitedUIAEventHandler_create(
-					self.QueryInterface(IUnknown),
+					self._com_pointers_[IUnknown._iid_],
 					byref(self._rateLimitedEventHandler),
 				)
 			else:
@@ -592,7 +594,7 @@ class UIAHandler(COMObject):
 				self.baseCacheRequest,
 				handler,
 			)
-		if not utils._shouldSelectivelyRegister():
+		if not utils._shouldSelectivelyRegister() and winVersion.getWinVer() >= winVersion.WIN10:
 			# #14067: Due to poor performance, textChange requires special handling
 			self.globalEventHandlerGroup.AddAutomationEventHandler(
 				UIA.UIA_Text_TextChangedEventId,
@@ -1218,7 +1220,7 @@ class UIAHandler(COMObject):
 						return False
 					parentHwnd = winUser.getAncestor(parentHwnd, winUser.GA_PARENT)
 		# Ask the window if it supports UIA natively
-		res = winBindings.uiAutomationCore.UiaHasServerSideProvider(hwnd)
+		res = windll.UIAutomationCore.UiaHasServerSideProvider(hwnd)
 		if res:
 			if isDebug:
 				log.debug("window has UIA server side provider")
@@ -1510,7 +1512,7 @@ class UIAHandler(COMObject):
 		return False
 
 
-handler: UIAHandler | None = None
+handler: Optional[UIAHandler] = None
 
 
 def initialize():

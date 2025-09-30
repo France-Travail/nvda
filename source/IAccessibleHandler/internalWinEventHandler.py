@@ -1,5 +1,5 @@
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2020-2025 NV Access Limited
+# Copyright (C) 2020 NV Access Limited
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
@@ -7,12 +7,11 @@
 Provides a non-threaded (limited by GIL) Windows Event Hook and processing.
 """
 
-from ctypes import c_int
+from ctypes import WINFUNCTYPE, c_int
 
 from typing import Dict, Callable
 
 import core
-from winBindings.user32 import WINEVENTPROC
 import winUser
 from .utils import getWinEventLogInfo, isMSAADebugLoggingEnabled
 
@@ -186,7 +185,7 @@ def winEventCallback(handle, eventID, window, objectID, childID, threadID, times
 
 
 # Register internal object event with IAccessible
-cWinEventCallback = WINEVENTPROC(winEventCallback)
+cWinEventCallback = WINFUNCTYPE(None, c_int, c_int, c_int, c_int, c_int, c_int, c_int)(winEventCallback)
 # A list to store handles received from setWinEventHook, for use with unHookWinEvent
 winEventHookIDs = []
 

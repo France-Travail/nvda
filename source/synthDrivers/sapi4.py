@@ -12,10 +12,6 @@ import queue
 import threading
 import time
 import winreg
-import winBindings.ole32
-from winBindings import user32
-import winBindings.winmm
-from winBindings.mmeapi import WAVEFORMATEX
 from comtypes import CoCreateInstance, CoInitialize, COMObject, COMError, GUID, hresult, ReturnHRESULT
 from ctypes import (
 	addressof,
@@ -30,6 +26,7 @@ from ctypes import (
 	memmove,
 	string_at,
 	sizeof,
+	windll,
 )
 from ctypes.wintypes import BOOL, DWORD, FILETIME, HANDLE, MSG, WORD
 from typing import TYPE_CHECKING, Callable, NamedTuple, Optional
@@ -82,7 +79,6 @@ from speech.commands import (
 	BreakCommand,
 	PitchCommand,
 	RateCommand,
-	SynthCommand,
 	VolumeCommand,
 	BaseProsodyCommand,
 )
@@ -212,15 +208,15 @@ class _ComThread(threading.Thread):
 		msg = MSG()
 		# Force the message queue to be created first
 		PM_NOREMOVE = 0
-		user32.PeekMessage(byref(msg), None, 0, 0, PM_NOREMOVE)
+		windll.user32.PeekMessageW(byref(msg), None, 0, 0, PM_NOREMOVE)
 		CoInitialize()
 		self._ready.set()
 		# Run a message loop, as it's required by SAPI 4.
 		# When queueing a new task, post a message to this thread to wake it up.
 		# When done, post WM_QUIT to this thread.
-		while user32.GetMessage(byref(msg), None, 0, 0):
-			user32.TranslateMessage(byref(msg))
-			user32.DispatchMessage(byref(msg))
+		while windll.user32.GetMessageW(byref(msg), None, 0, 0):
+			windll.user32.TranslateMessage(byref(msg))
+			windll.user32.DispatchMessageW(byref(msg))
 			# Process queued tasks outside window procedures
 			# to avoid COM error RPC_E_CANTCALLOUT_INEXTERNALCALL
 			# (-2147418107, 0x80010005).
@@ -240,7 +236,7 @@ class _ComThread(threading.Thread):
 
 	def stop(self):
 		WM_QUIT = 18
-		user32.PostThreadMessage(self.native_id, WM_QUIT, 0, 0)
+		windll.user32.PostThreadMessageW(self.native_id, WM_QUIT, 0, 0)
 		self.join()
 
 	def submit(self, func: Callable, *args, **kwargs) -> _ComThreadTask:
@@ -250,7 +246,7 @@ class _ComThread(threading.Thread):
 		task = _ComThreadTask(func, *args, **kwargs)
 		self._tasks.put(task)
 		# post a message to wake up the thread
-		user32.PostThreadMessage(self.native_id, 0, 0, 0)
+		windll.user32.PostThreadMessageW(self.native_id, 0, 0, 0)
 		return task
 
 	def invoke(self, func: Callable, *args, **kwargs):
@@ -334,10 +330,9 @@ class SynthDriverAudio(COMObject):
 		:param comThread: The COM thread that `IAudioDestNotifySink` methods will be called on."""
 		if isDebugForSynthDriver():
 			log.debug("SAPI4: Initializing WASAPI implementation")
-		self._allowDelete = False
 		self._notifySink: LP_IAudioDestNotifySink | None = None
 		self._deviceState = _AudioState.INVALID
-		self._waveFormat: WAVEFORMATEX | None = None
+		self._waveFormat: nvwave.WAVEFORMATEX | None = None
 		self._player: nvwave.WavePlayer | None = None
 		self._writtenBytes = 0
 		self._playedBytes = 0
@@ -352,22 +347,16 @@ class SynthDriverAudio(COMObject):
 		self._level = 0xFFFFFFFF  # defaults to maximum value (0xFFFF) for both channels (low and high word)
 		self._comThread = comThread
 
-	def IUnknown_Release(self, this: int, *args, **kwargs) -> int:
-		if not self._allowDelete and self._refcnt.value == 1:
-			log.debugWarning("SynthDriverAudio was released too many times")
-			return 1
-		return super().IUnknown_Release(this, *args, **kwargs)
-
-	def terminate(self):
+	def _final_release_(self):
+		"""This will be called automatically when this COM object is being destroyed."""
 		if isDebugForSynthDriver():
 			log.debug("SAPI4: Terminating audio")
 		with self._audioCond:
 			self._audioStopped = True
 			self._audioCond.notify()
-		if self._audioThread is not threading.current_thread() and self._audioThread.is_alive():
+		if self._audioThread is not threading.current_thread():
 			self._audioThread.join()
 		self._notifySink = None
-		self._allowDelete = True
 
 	def _queueNotification(self, func: Callable, *args, **kwargs) -> None:
 		"""Queue a notification to be sent to the engine via IAudioDestNotifySink.
@@ -576,8 +565,8 @@ class SynthDriverAudio(COMObject):
 			Should be freed by the caller using CoTaskMemFree."""
 		if self._deviceState == _AudioState.INVALID:
 			raise ReturnHRESULT(AudioError.NEED_WAVE_FORMAT, None)
-		size = sizeof(WAVEFORMATEX)
-		ptr = winBindings.ole32.CoTaskMemAlloc(size)
+		size = sizeof(nvwave.WAVEFORMATEX)
+		ptr = windll.ole32.CoTaskMemAlloc(size)
 		if not ptr:
 			raise COMError(hresult.E_OUTOFMEMORY, "CoTaskMemAlloc failed", (None, None, None, None, None))
 		memmove(ptr, addressof(self._waveFormat), size)
@@ -589,7 +578,7 @@ class SynthDriverAudio(COMObject):
 		size = 18  # SAPI4 uses 18 bytes without the final padding
 		if not dWFEX.pData or dWFEX.dwSize < size:
 			raise ReturnHRESULT(hresult.E_INVALIDARG, None)
-		wfx = WAVEFORMATEX()
+		wfx = nvwave.WAVEFORMATEX()
 		memmove(addressof(wfx), dWFEX.pData, size)
 		if self._deviceState != _AudioState.INVALID:
 			# Setting wave format more than once is not allowed.
@@ -729,20 +718,13 @@ class SynthDriverMMAudio(COMObject):
 	def __init__(self):
 		if isDebugForSynthDriver():
 			log.debug("SAPI4: Initializing WinMM implementation")
-		self._allowDelete = False
 		self.mmdev = CoCreateInstance(CLSID_MMAudioDest, IAudioMultiMediaDevice)
 		self.mmdev.DeviceNumSet(_mmDeviceEndpointIdToWaveOutId(config.conf["audio"]["outputDevice"]))
 		self.audio = self.mmdev.QueryInterface(IAudio)
 		self.audiodest = self.mmdev.QueryInterface(IAudioDest)
 
-	def IUnknown_Release(self, this: int, *args, **kwargs) -> int:
-		if not self._allowDelete and self._refcnt.value == 1:
-			log.debugWarning("SynthDriverMMAudio was released too many times")
-			return 1
-		return super().IUnknown_Release(this, *args, **kwargs)
-
 	def terminate(self):
-		self._allowDelete = True
+		pass  # do nothing
 
 	@_logTrace(logAll=True)
 	def IAudio_Flush(self) -> None:
@@ -860,7 +842,7 @@ class SynthDriver(SynthDriver):
 	name = "sapi4"
 	description = "Microsoft Speech API version 4"
 	supportedSettings = [SynthDriver.VoiceSetting()]
-	supportedCommands: set[type[SynthCommand]] = {
+	supportedCommands = {
 		IndexCommand,
 		CharacterModeCommand,
 		BreakCommand,
@@ -895,7 +877,6 @@ class SynthDriver(SynthDriver):
 		self._comThread = _ComThread()
 		self._finalIndex: Optional[int] = None
 		self._ttsCentral = None
-		self._ttsAudio = None
 		self._sinkRegKey = DWORD()
 		self._bookmarks = None
 		self._bookmarkLists = deque()
@@ -925,9 +906,6 @@ class SynthDriver(SynthDriver):
 		# Release all COM objects before stopping the COM thread.
 		self._ttsAttrs = None
 		self._ttsCentral = None
-		if self._ttsAudio:
-			self._ttsAudio.terminate()
-			self._ttsAudio = None
 		self._ttsEngines = None
 		self._comThread.stop()
 
@@ -974,8 +952,7 @@ class SynthDriver(SynthDriver):
 				# If you specify a value greater than 65535, the engine assumes that you want to set the
 				# left and right channels separately and converts the value to a double word,
 				# using the low word for the left channel and the high word for the right channel.
-				# However, some voices don't handle values greater than 65535 properly in Vol tags,
-				# so here only 0~65535 are used.
+				val |= val << 16
 				textList.append(f"\\Vol={val}\\")
 			elif isinstance(item, SpeechCommand):
 				log.debugWarning("Unsupported speech command: %s" % item)
@@ -1067,14 +1044,12 @@ class SynthDriver(SynthDriver):
 			# before the next _ttsCentral is created.
 			self._ttsAttrs = None
 			self._ttsCentral = None
-			self._ttsAudio.terminate()
-			self._ttsAudio = None
 		if config.conf["speech"]["useWASAPIForSAPI4"]:
-			self._ttsAudio = self._comThread.invoke(SynthDriverAudio, self._comThread)
+			ttsAudio = self._comThread.invoke(SynthDriverAudio, self._comThread)
 		else:
-			self._ttsAudio = self._comThread.invoke(SynthDriverMMAudio)
+			ttsAudio = self._comThread.invoke(SynthDriverMMAudio)
 		self._ttsCentral = POINTER(ITTSCentralW)()
-		self._ttsEngines.Select(self._currentMode.gModeID, byref(self._ttsCentral), self._ttsAudio)
+		self._ttsEngines.Select(self._currentMode.gModeID, byref(self._ttsCentral), ttsAudio)
 		self._ttsCentral = _ComProxy(self._ttsCentral, self._comThread)
 		self._ttsCentral.Register(self._sinkPtr, ITTSNotifySinkW._iid_, byref(self._sinkRegKey))
 		self._ttsAttrs = _ComProxy(self._ttsCentral.QueryInterface(ITTSAttributes), self._comThread)
@@ -1227,8 +1202,9 @@ def _mmDeviceEndpointIdToWaveOutId(targetEndpointId: str) -> int:
 		currEndpointId = create_string_buffer(targetEndpointIdByteCount)
 		currEndpointIdByteCount = DWORD()
 		# Defined in mmeapi.h
-		waveOutMessage = winBindings.winmm.waveOutMessage
-		waveOutGetNumDevs = winBindings.winmm.waveOutGetNumDevs
+		winmm = windll.winmm
+		waveOutMessage = winmm.waveOutMessage
+		waveOutGetNumDevs = winmm.waveOutGetNumDevs
 		for devID in range(waveOutGetNumDevs()):
 			# Get the length of this device's endpoint ID string.
 			mmr = waveOutMessage(

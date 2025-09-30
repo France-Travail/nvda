@@ -7,6 +7,9 @@
 import wx
 from wx.adv import BannerWindow
 
+from addonHandler import (
+	BUNDLE_EXTENSION,
+)
 from addonStore.dataManager import addonDataManager
 from addonStore.models.channel import Channel, _channelFilters
 from addonStore.models.status import (
@@ -14,7 +17,6 @@ from addonStore.models.status import (
 	_statusFilters,
 	_StatusFilterKey,
 )
-from config.registry import ADDON_BUNDLE_EXTENSION
 from core import callLater
 import globalVars
 import gui
@@ -218,33 +220,18 @@ class AddonStoreDialog(SettingsDialog):
 	# Translators: Title for message shown prior to installing add-ons when closing the add-on store dialog.
 	_installationPromptTitle = pgettext("addonStore", "Add-on installation")
 
-	@staticmethod
-	def _installationPromptMsg(nAddonsPendingInstall: int) -> str:
-		return npgettext(
-			"addonStore",
-			# Translators: Message shown while installing add-ons after closing the add-on store dialog
-			# The placeholder {num} will be replaced with the number of add-ons to be installed
-			"Installing {num} add-on, please wait.",
-			"Installing {num} add-ons, please wait.",
-			nAddonsPendingInstall,
-		).format(num=nAddonsPendingInstall)
-
-	@staticmethod
-	def _cancelInstallationPromptMsg(numInProgress: int) -> str:
-		return npgettext(
-			"addonStore",
-			# Translators: Message shown prior to installing add-ons when closing the add-on store dialog
-			# The placeholder {num} will be replaced with the number of add-ons to be installed
-			"Download of {num} add-on in progress, cancel downloading?",
-			"Download of {num} add-ons in progress, cancel downloading?",
-			numInProgress,
-		).format(num=numInProgress)
-
 	def onClose(self, evt: wx.CommandEvent):
 		numInProgress = len(self._storeVM._downloader.progress)
 		if numInProgress:
 			res = gui.messageBox(
-				self._cancelInstallationPromptMsg(numInProgress),
+				npgettext(
+					"addonStore",
+					# Translators: Message shown prior to installing add-ons when closing the add-on store dialog
+					# The placeholder {} will be replaced with the number of add-ons to be installed
+					"Download of {} add-on in progress, cancel downloading?",
+					"Download of {} add-ons in progress, cancel downloading?",
+					numInProgress,
+				).format(numInProgress),
 				self._installationPromptTitle,
 				style=wx.YES_NO,
 			)
@@ -261,7 +248,14 @@ class AddonStoreDialog(SettingsDialog):
 			installingDialog = gui.IndeterminateProgressDialog(
 				self,
 				self._installationPromptTitle,
-				self._installationPromptMsg(nAddonsPendingInstall),
+				npgettext(
+					"addonStore",
+					# Translators: Message shown while installing add-ons after closing the add-on store dialog
+					# The placeholder {} will be replaced with the number of add-ons to be installed
+					"Installing {} add-on, please wait.",
+					"Installing {} add-ons, please wait.",
+					nAddonsPendingInstall,
+				).format(nAddonsPendingInstall),
 			)
 			self._storeVM.installPending()
 
@@ -416,7 +410,7 @@ class AddonStoreDialog(SettingsDialog):
 			# Translators: The message displayed in the dialog that
 			# allows you to choose an add-on package for installation.
 			message=pgettext("addonStore", "Choose Add-on Package File"),
-			wildcard=(fileTypeLabel + "|*.{ext}").format(ext=ADDON_BUNDLE_EXTENSION),
+			wildcard=(fileTypeLabel + "|*.{ext}").format(ext=BUNDLE_EXTENSION),
 			defaultDir="c:",
 			style=wx.FD_OPEN,
 		)

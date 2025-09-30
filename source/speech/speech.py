@@ -39,7 +39,6 @@ from .commands import (
 	EndUtteranceCommand,
 	SuppressUnicodeNormalizationCommand,
 	CharacterModeCommand,
-	WaveFileCommand,
 )
 from .shortcutKeys import getKeyboardShortcutsSpeech
 
@@ -52,7 +51,6 @@ from .types import (
 	_flattenNestedSequences,
 )
 from typing import (
-	Final,
 	Iterable,
 	Optional,
 	Dict,
@@ -67,7 +65,6 @@ from logHandler import log
 import config
 from config.configFlags import (
 	ReportLineIndentation,
-	ReportSpellingErrors,
 	ReportTableHeaders,
 	ReportCellBorders,
 	OutputMode,
@@ -86,7 +83,6 @@ if typing.TYPE_CHECKING:
 
 _speechState: Optional["SpeechState"] = None
 _curWordChars: List[str] = []
-IDEOGRAPHIC_COMMA: Final[str] = "\u3001"
 
 
 class SpeechMode(DisplayStringIntEnum):
@@ -490,38 +486,29 @@ def _getSpellingSpeechWithoutCharMode(
 		itemIsNormalized = textIsNormalized
 		uppercase = speakCharAs.isupper()
 		if useCharacterDescriptions and charDesc:
-			charList = [charDesc[0] if textLength > 1 else IDEOGRAPHIC_COMMA.join(charDesc)]
+			IDEOGRAPHIC_COMMA = "\u3001"
+			speakCharAs = charDesc[0] if textLength > 1 else IDEOGRAPHIC_COMMA.join(charDesc)
 		elif useCharacterDescriptions and not charDesc and not fallbackToCharIfNoDescription:
 			return None
 		else:
 			if (symbol := characterProcessing.processSpeechSymbol(locale, speakCharAs)) != speakCharAs:
-				charList = [symbol]
+				speakCharAs = symbol
 			elif not textIsNormalized and unicodeNormalization:
 				if (normalized := unicodeNormalize(speakCharAs)) != speakCharAs:
-					charList = [
-						" ".join(
-							characterProcessing.processSpeechSymbol(locale, normChar)
-							for normChar in normalized
-						),
-					]
+					speakCharAs = " ".join(
+						characterProcessing.processSpeechSymbol(locale, normChar) for normChar in normalized
+					)
 					itemIsNormalized = True
-				else:
-					# Tried to normalize, but it didn't result in normalization at all.
-					# We need to deal with the case where splitAtCharacterBoundaries might have merged characters we need to speak separately.
-					charList = [characterProcessing.processSpeechSymbol(locale, char) for char in speakCharAs]
-			else:
-				charList = [speakCharAs]
 		if languageHandling.shouldMakeLangChangeCommand():
 			yield LangChangeCommand(locale)
-		for charToSpeak in charList:
-			yield from _getSpellingCharAddCapNotification(
-				charToSpeak,
-				uppercase and sayCapForCapitals,
-				capPitchChange if uppercase else 0,
-				uppercase and beepForCapitals,
-				itemIsNormalized and reportNormalizedForCharacterNavigation,
-			)
-			yield EndUtteranceCommand()
+		yield from _getSpellingCharAddCapNotification(
+			speakCharAs,
+			uppercase and sayCapForCapitals,
+			capPitchChange if uppercase else 0,
+			uppercase and beepForCapitals,
+			itemIsNormalized and reportNormalizedForCharacterNavigation,
+		)
+		yield EndUtteranceCommand()
 
 
 def getSingleCharDescriptionDelayMS() -> int:
@@ -1014,11 +1001,8 @@ def splitTextIndentation(text):
 
 RE_INDENTATION_CONVERT = re.compile(r"(?P<char>\s)(?P=char)*", re.UNICODE)
 IDT_BASE_FREQUENCY = 220  # One octave below middle A.
+IDT_TONE_DURATION = 80  # Milleseconds
 IDT_MAX_SPACES = 72
-
-
-def getIndentToneDuration() -> int:
-	return config.conf["documentFormatting"]["indentToneDuration"]
 
 
 def getIndentationSpeech(indentation: str, formatConfig: Dict[str, bool]) -> SpeechSequence:
@@ -1041,7 +1025,7 @@ def getIndentationSpeech(indentation: str, formatConfig: Dict[str, bool]) -> Spe
 	indentSequence: SpeechSequence = []
 	if not indentation:
 		if toneIndentConfig:
-			indentSequence.append(BeepCommand(IDT_BASE_FREQUENCY, getIndentToneDuration()))
+			indentSequence.append(BeepCommand(IDT_BASE_FREQUENCY, IDT_TONE_DURATION))
 		if speechIndentConfig:
 			indentSequence.append(
 				# Translators: This is spoken when the given line has no indentation.
@@ -1071,7 +1055,7 @@ def getIndentationSpeech(indentation: str, formatConfig: Dict[str, bool]) -> Spe
 	if toneIndentConfig:
 		if quarterTones <= IDT_MAX_SPACES:
 			pitch = IDT_BASE_FREQUENCY * 2 ** (quarterTones / 24.0)  # 24 quarter tones per octave.
-			indentSequence.append(BeepCommand(pitch, getIndentToneDuration()))
+			indentSequence.append(BeepCommand(pitch, IDT_TONE_DURATION))
 		else:
 			# we have more than 72 spaces (18 tabs), and must speak it since we don't want to hurt the users ears.
 			speak = True
@@ -1506,7 +1490,7 @@ def speakTextInfo(
 def getTextInfoSpeech(  # noqa: C901
 	info: textInfos.TextInfo,
 	useCache: Union[bool, SpeakTextInfoState] = True,
-	formatConfig: dict[str, bool | int] | None = None,
+	formatConfig: Dict[str, bool] = None,
 	unit: Optional[str] = None,
 	reason: OutputReason = OutputReason.QUERY,
 	_prefixSpeechCommand: Optional[SpeechCommand] = None,
@@ -1530,7 +1514,7 @@ def getTextInfoSpeech(  # noqa: C901
 	)
 	# For performance reasons, when navigating by paragraph or table cell, spelling errors will not be announced.
 	if unit in (textInfos.UNIT_PARAGRAPH, textInfos.UNIT_CELL) and reason == OutputReason.CARET:
-		formatConfig["reportSpellingErrors2"] = 0
+		formatConfig["reportSpellingErrors"] = False
 
 	# Fetch the last controlFieldStack, or make a blank one
 	controlFieldStackCache = speakTextInfoState.controlFieldStackCache if speakTextInfoState else []
@@ -1907,7 +1891,7 @@ def _getTextInfoSpeech_considerSpelling(
 	speechSequence: SpeechSequence,
 	language: str,
 ) -> Generator[SpeechSequence, None, None]:
-	if onlyInitialFields or speechSequence:
+	if onlyInitialFields or any(isinstance(x, str) for x in speechSequence):
 		yield speechSequence
 	if not onlyInitialFields:
 		spellingSequence = list(
@@ -3007,21 +2991,20 @@ def getFormatFieldSpeech(  # noqa: C901
 				# Translators: Reported when text no longer contains a bookmark
 				text = _("out of bookmark")
 				textList.append(text)
-	if formatConfig["reportSpellingErrors2"]:
+	if formatConfig["reportSpellingErrors"]:
 		invalidSpelling = attrs.get("invalid-spelling")
 		oldInvalidSpelling = attrsCache.get("invalid-spelling") if attrsCache is not None else None
 		if (invalidSpelling or oldInvalidSpelling is not None) and invalidSpelling != oldInvalidSpelling:
-			texts = []
 			if invalidSpelling:
-				if formatConfig["reportSpellingErrors2"] & ReportSpellingErrors.SOUND.value:
-					texts.append(WaveFileCommand(r"waves\textError.wav"))
-				if formatConfig["reportSpellingErrors2"] & ReportSpellingErrors.SPEECH.value:
-					# Translators: Reported when text contains a spelling error.
-					texts.append(_("spelling error"))
+				# Translators: Reported when text contains a spelling error.
+				text = _("spelling error")
 			elif extraDetail:
 				# Translators: Reported when moving out of text containing a spelling error.
-				texts.append(_("out of spelling error"))
-			textList.extend(texts)
+				text = _("out of spelling error")
+			else:
+				text = ""
+			if text:
+				textList.append(text)
 		invalidGrammar = attrs.get("invalid-grammar")
 		oldInvalidGrammar = attrsCache.get("invalid-grammar") if attrsCache is not None else None
 		if (invalidGrammar or oldInvalidGrammar is not None) and invalidGrammar != oldInvalidGrammar:

@@ -1,10 +1,11 @@
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2017-2025 NV Access Limited, Bram Duvigneau, Łukasz Golonka
+# Copyright (C) 2017-2021 NV Access Limited, Bram Duvigneau, Łukasz Golonka
 # This file is covered by the GNU General Public License.
 # See the file COPYING for more details.
 
 import os
 import ctypes
+import ctypes.wintypes
 import array
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
@@ -14,7 +15,6 @@ import winKernel
 import shlobj
 from functools import wraps
 import systemUtils
-import winBindings.version
 
 
 @contextmanager
@@ -79,17 +79,17 @@ def getFileVersionInfo(name, *attributes):
 		raise RuntimeError("The file %s does not exist" % name)
 	fileVersionInfo = {}
 	# Get size needed for buffer (0 if no info)
-	size = winBindings.version.GetFileVersionInfoSize(name, None)
+	size = ctypes.windll.version.GetFileVersionInfoSizeW(name, None)
 	if not size:
 		raise RuntimeError("No version information")
 	# Create buffer
 	res = ctypes.create_string_buffer(size)
 	# Load file informations into buffer res
-	winBindings.version.GetFileVersionInfo(name, 0, size, res)
-	r = ctypes.c_void_p()
+	ctypes.windll.version.GetFileVersionInfoW(name, None, size, res)
+	r = ctypes.c_uint()
 	l = ctypes.c_uint()  # noqa: E741
 	# Look for codepages
-	winBindings.version.VerQueryValue(
+	ctypes.windll.version.VerQueryValueW(
 		res,
 		"\\VarFileInfo\\Translation",
 		ctypes.byref(r),
@@ -101,7 +101,7 @@ def getFileVersionInfo(name, *attributes):
 	codepage = array.array("H", ctypes.string_at(r.value, 4))
 	codepage = "%04x%04x" % tuple(codepage)
 	for attr in attributes:
-		if not winBindings.version.VerQueryValue(
+		if not ctypes.windll.version.VerQueryValueW(
 			res,
 			"\\StringFileInfo\\%s\\%s" % (codepage, attr),
 			ctypes.byref(r),

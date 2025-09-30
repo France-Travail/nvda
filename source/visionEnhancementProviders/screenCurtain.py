@@ -9,6 +9,8 @@ The Magnification API has been marked by MS as unsupported for WOW64 application
 
 import os
 from vision import providerBase
+from ctypes import Structure, windll, c_float, POINTER, WINFUNCTYPE, WinError
+from ctypes.wintypes import BOOL
 from autoSettingsUtils.driverSetting import BooleanDriverSetting
 from autoSettingsUtils.autoSettings import SupportedSettingType
 import wx
@@ -22,22 +24,73 @@ from logHandler import log
 from typing import Optional, Type
 import nvwave
 import globalVars
-from NVDAHelper.localLib import isScreenFullyBlack as _isScreenFullyBlack
-from winBindings.magnification import MAGCOLOREFFECT as _MAGCOLOREFFECT
-from winBindings import magnification
-from utils import _deprecate
+import NVDAHelper
 
-__getattr__ = _deprecate.handleDeprecations(
-	_deprecate.MovedSymbol("MAGCOLOREFFECT", "winBindings.magnification"),
-	_deprecate.MovedSymbol("isScreenFullyBlack", "NVDAHelper.localLib"),
-)
+
+isScreenFullyBlack = NVDAHelper.localLib.isScreenFullyBlack
+isScreenFullyBlack.argtypes = ()
+isScreenFullyBlack.restype = BOOL
+
+
+class MAGCOLOREFFECT(Structure):
+	_fields_ = (("transform", c_float * 5 * 5),)
 
 
 # homogeneous matrix for a 4-space transformation (red, green, blue, opacity).
 # https://docs.microsoft.com/en-gb/windows/win32/gdiplus/-gdiplus-using-a-color-matrix-to-transform-a-single-color-use
-TRANSFORM_BLACK = _MAGCOLOREFFECT()  # empty transformation
+TRANSFORM_BLACK = MAGCOLOREFFECT()  # empty transformation
 TRANSFORM_BLACK.transform[4][4] = 1.0  # retain as an affine transformation
 TRANSFORM_BLACK.transform[3][3] = 1.0  # retain opacity, while scaling other colours to zero (#12491)
+
+
+def _errCheck(result, func, args):
+	if result == 0:
+		raise WinError()
+	return args
+
+
+class Magnification:
+	"""Static class that wraps necessary functions from the Windows magnification API."""
+
+	_magnification = windll.Magnification
+
+	# Set full screen color effect
+	_MagSetFullscreenColorEffectFuncType = WINFUNCTYPE(BOOL, POINTER(MAGCOLOREFFECT))
+	_MagSetFullscreenColorEffectArgTypes = ((1, "effect"),)
+	MagSetFullscreenColorEffect = _MagSetFullscreenColorEffectFuncType(
+		("MagSetFullscreenColorEffect", _magnification),
+		_MagSetFullscreenColorEffectArgTypes,
+	)
+	MagSetFullscreenColorEffect.errcheck = _errCheck
+
+	# Get full screen color effect
+	_MagGetFullscreenColorEffectFuncType = WINFUNCTYPE(BOOL, POINTER(MAGCOLOREFFECT))
+	_MagGetFullscreenColorEffectArgTypes = ((2, "effect"),)
+	MagGetFullscreenColorEffect = _MagGetFullscreenColorEffectFuncType(
+		("MagGetFullscreenColorEffect", _magnification),
+		_MagGetFullscreenColorEffectArgTypes,
+	)
+	MagGetFullscreenColorEffect.errcheck = _errCheck
+
+	# show system cursor
+	_MagShowSystemCursorFuncType = WINFUNCTYPE(BOOL, BOOL)
+	_MagShowSystemCursorArgTypes = ((1, "showCursor"),)
+	MagShowSystemCursor = _MagShowSystemCursorFuncType(
+		("MagShowSystemCursor", _magnification),
+		_MagShowSystemCursorArgTypes,
+	)
+	MagShowSystemCursor.errcheck = _errCheck
+
+	# initialize
+	_MagInitializeFuncType = WINFUNCTYPE(BOOL)
+	MagInitialize = _MagInitializeFuncType(("MagInitialize", _magnification))
+	MagInitialize.errcheck = _errCheck
+
+	# uninitialize
+	_MagUninitializeFuncType = WINFUNCTYPE(BOOL)
+	MagUninitialize = _MagUninitializeFuncType(("MagUninitialize", _magnification))
+	MagUninitialize.errcheck = _errCheck
+
 
 # Translators: Name for a vision enhancement provider that disables output to the screen,
 # making it black.
@@ -288,14 +341,14 @@ class ScreenCurtainProvider(providerBase.VisionEnhancementProvider):
 	def __init__(self):
 		super().__init__()
 		log.debug("Starting ScreenCurtain")
-		magnification.MagInitialize()
+		Magnification.MagInitialize()
 		try:
-			magnification.MagSetFullscreenColorEffect(TRANSFORM_BLACK)
-			magnification.MagShowSystemCursor(False)
-			if not _isScreenFullyBlack():
+			Magnification.MagSetFullscreenColorEffect(TRANSFORM_BLACK)
+			Magnification.MagShowSystemCursor(False)
+			if not isScreenFullyBlack():
 				raise RuntimeError("Screen is not black.")
 		except Exception as e:
-			magnification.MagUninitialize()
+			Magnification.MagUninitialize()
 			raise e
 		if self.getSettings().playToggleSounds:
 			try:
@@ -308,8 +361,8 @@ class ScreenCurtainProvider(providerBase.VisionEnhancementProvider):
 		try:
 			super().terminate()
 		finally:
-			magnification.MagShowSystemCursor(True)
-			magnification.MagUninitialize()
+			Magnification.MagShowSystemCursor(True)
+			Magnification.MagUninitialize()
 			if self.getSettings().playToggleSounds:
 				try:
 					nvwave.playWaveFile(os.path.join(globalVars.appDir, "waves", "screenCurtainOff.wav"))

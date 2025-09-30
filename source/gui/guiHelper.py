@@ -53,6 +53,7 @@ from typing import (
 	Any,
 	Generic,
 	Optional,
+	ParamSpec,
 	Type,
 	TypeVar,
 	Union,
@@ -483,11 +484,16 @@ class SIPABCMeta(wx.siplib.wrappertype, ABCMeta):
 	pass
 
 
-def wxCallOnMain[**P, T](
-	function: Callable[P, T],
-	*args: P.args,
-	**kwargs: P.kwargs,
-) -> T:
+# TODO: Rewrite to use type parameter lists when upgrading to python 3.12 or later.
+_WxCallOnMain_P = ParamSpec("_WxCallOnMain_P")
+_WxCallOnMain_T = TypeVar("_WxCallOnMain_T")
+
+
+def wxCallOnMain(
+	function: Callable[_WxCallOnMain_P, _WxCallOnMain_T],
+	*args: _WxCallOnMain_P.args,
+	**kwargs: _WxCallOnMain_P.kwargs,
+) -> _WxCallOnMain_T:
 	"""Call a non-thread-safe wx function in a thread-safe way.
 	Blocks current thread.
 
@@ -526,7 +532,11 @@ def wxCallOnMain[**P, T](
 		return result
 
 
-def alwaysCallAfter[**P](func: Callable[P, Any]) -> Callable[P, None]:
+# TODO: Rewrite to use type parameter lists when upgrading to python 3.12 or later.
+_AlwaysCallAfterP = ParamSpec("_AlwaysCallAfterP")
+
+
+def alwaysCallAfter(func: Callable[_AlwaysCallAfterP, Any]) -> Callable[_AlwaysCallAfterP, None]:
 	"""Makes GUI updates thread-safe by running in the main thread.
 
 	Example:
@@ -539,7 +549,7 @@ def alwaysCallAfter[**P](func: Callable[P, Any]) -> Callable[P, None]:
 	"""
 
 	@wraps(func)
-	def wrapper(*args: P.args, **kwargs: P.kwargs) -> None:
+	def wrapper(*args: _AlwaysCallAfterP.args, **kwargs: _AlwaysCallAfterP.kwargs) -> None:
 		wx.CallAfter(func, *args, **kwargs)
 
 	return wrapper

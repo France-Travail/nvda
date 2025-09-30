@@ -14,7 +14,6 @@ from vision.constants import Context
 from vision.util import getContextRect
 from vision.visionHandlerExtensionPoints import EventExtensionPoints
 from vision import providerBase
-from winBindings import user32
 from windowUtils import CustomWindow
 import wx
 from gui.settingsDialogs import (
@@ -24,7 +23,7 @@ from gui.settingsDialogs import (
 )
 import api
 from ctypes import byref, WinError
-from ctypes.wintypes import MSG
+from ctypes.wintypes import COLORREF, MSG
 import winUser
 from logHandler import log
 from mouseHandler import getTotalWidthAndHeightAndMinimumPosition
@@ -32,7 +31,6 @@ from locationHelper import RectLTWH
 from collections import namedtuple
 import threading
 from winAPI.messageWindow import WindowMessage
-import winBindings.gdi32
 import winGDI
 import weakref
 from colors import RGB
@@ -95,7 +93,7 @@ class HighlightWindow(CustomWindow):
 	def _get__wClass(cls):
 		wClass = super()._wClass
 		wClass.style = winUser.CS_HREDRAW | winUser.CS_VREDRAW
-		wClass.hbrBackground = winBindings.gdi32.CreateSolidBrush(cls.transparentColor)
+		wClass.hbrBackground = winGDI.gdi32.CreateSolidBrush(COLORREF(cls.transparentColor))
 		return wClass
 
 	def updateLocationForDisplays(self):
@@ -111,8 +109,8 @@ class HighlightWindow(CustomWindow):
 		width = screenWidth
 		height = screenHeight - 1
 		self.location = RectLTWH(left, top, width, height)
-		user32.ShowWindow(self.handle, winUser.SW_HIDE)
-		if not user32.SetWindowPos(
+		winUser.user32.ShowWindow(self.handle, winUser.SW_HIDE)
+		if not winUser.user32.SetWindowPos(
 			self.handle,
 			winUser.HWND_TOPMOST,
 			left,
@@ -122,7 +120,7 @@ class HighlightWindow(CustomWindow):
 			winUser.SWP_NOACTIVATE,
 		):
 			raise WinError()
-		user32.ShowWindow(self.handle, winUser.SW_SHOWNA)
+		winUser.user32.ShowWindow(self.handle, winUser.SW_SHOWNA)
 
 	def __init__(self, highlighter):
 		if vision._isDebug():
@@ -141,14 +139,14 @@ class HighlightWindow(CustomWindow):
 			winUser.LWA_ALPHA | winUser.LWA_COLORKEY,
 		)
 		self.updateLocationForDisplays()
-		if not user32.UpdateWindow(self.handle):
+		if not winUser.user32.UpdateWindow(self.handle):
 			raise WinError()
 
 	def windowProc(self, hwnd, msg, wParam, lParam):
 		if msg == winUser.WM_PAINT:
 			self._paint()
 			# Ensure the window is top most
-			user32.SetWindowPos(
+			winUser.user32.SetWindowPos(
 				self.handle,
 				winUser.HWND_TOPMOST,
 				0,
@@ -158,7 +156,7 @@ class HighlightWindow(CustomWindow):
 				winUser.SWP_NOACTIVATE | winUser.SWP_NOMOVE | winUser.SWP_NOSIZE,
 			)
 		elif msg == winUser.WM_DESTROY:
-			user32.PostQuitMessage(0)
+			winUser.user32.PostQuitMessage(0)
 		elif msg == winUser.WM_TIMER:
 			self.refresh()
 		elif msg == WindowMessage.DISPLAY_CHANGE:
@@ -169,7 +167,7 @@ class HighlightWindow(CustomWindow):
 		highlighter = self.highlighterRef()
 		if not highlighter:
 			# The highlighter instance died unexpectedly, kill the window as well
-			user32.PostQuitMessage(0)
+			winUser.user32.PostQuitMessage(0)
 			return
 		contextRects = {}
 		for context in highlighter.enabledContexts:
@@ -211,7 +209,7 @@ class HighlightWindow(CustomWindow):
 						winGDI.gdiPlusDrawRectangle(graphicsContext, pen, *rect.toLTWH())
 
 	def refresh(self):
-		user32.InvalidateRect(self.handle, None, True)
+		winUser.user32.InvalidateRect(self.handle, None, True)
 
 
 _contextOptionLabelsWithAccelerators = {
@@ -442,7 +440,7 @@ class NVDAHighlighter(providerBase.VisionEnhancementProvider):
 	def terminate(self):
 		log.debug("Terminating NVDAHighlighter")
 		if self._highlighterThread and self._window and self._window.handle:
-			if not user32.PostThreadMessage(self._highlighterThread.ident, winUser.WM_QUIT, 0, 0):
+			if not winUser.user32.PostThreadMessageW(self._highlighterThread.ident, winUser.WM_QUIT, 0, 0):
 				raise WinError()
 			else:
 				self._highlighterThread.join()
@@ -461,8 +459,8 @@ class NVDAHighlighter(providerBase.VisionEnhancementProvider):
 			self._highlighterRunningEvent.set()  # notify main thread that initialisation was successful
 			msg = MSG()
 			while (res := winUser.getMessage(byref(msg), None, 0, 0)) > 0:
-				user32.TranslateMessage(byref(msg))
-				user32.DispatchMessage(byref(msg))
+				winUser.user32.TranslateMessage(byref(msg))
+				winUser.user32.DispatchMessageW(byref(msg))
 			if res == -1:
 				# See the return value section of
 				# https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getmessage
