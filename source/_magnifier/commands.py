@@ -126,8 +126,6 @@ def toggleFilter() -> None:
 				"Color filter changed to {filter}",
 			).format(filter=magnifier.filterType.displayString),
 		)
-
-
 def toggleFullscreenMode() -> None:
 	"""Cycle through full-screen focus modes (center, border, relative)"""
 	magnifier: Magnifier = getMagnifier()
