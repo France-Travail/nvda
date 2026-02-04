@@ -80,13 +80,7 @@ def zoomIn() -> None:
 		MagnifierAction.ZOOM_IN,
 	):
 		magnifier._zoom(Direction.IN)
-		ui.message(
-			pgettext(
-				"magnifier",
-				# Translators: Message announced when zooming in with {zoomLevel} being the target zoom level.
-				"Zooming in with {zoomLevel} level",
-			).format(zoomLevel=magnifier.zoomLevel),
-		)
+		sayZoomMessage(magnifier.zoomLevel)
 
 
 def zoomOut() -> None:
@@ -97,13 +91,103 @@ def zoomOut() -> None:
 		MagnifierAction.ZOOM_OUT,
 	):
 		magnifier._zoom(Direction.OUT)
-		ui.message(
-			pgettext(
-				"magnifier",
-				# Translators: Message announced when zooming out with {zoomLevel} being the target zoom level.
-				"Zooming out with {zoomLevel} level",
-			).format(zoomLevel=magnifier.zoomLevel),
-		)
+		sayZoomMessage(magnifier.zoomLevel)
+
+
+def panLeft() -> None:
+	"""Pan the magnifier to the left"""
+	magnifier: Magnifier = getMagnifier()
+	if magnifierIsActiveVerify(
+		magnifier,
+		MagnifierAction.PAN_LEFT,
+	):
+		edgeMessage = magnifier._pan(MagnifierAction.PAN_LEFT)
+		if edgeMessage:
+			sayEdgeMessage("Left")
+
+
+def panRight() -> None:
+	"""Pan the magnifier to the right"""
+	magnifier: Magnifier = getMagnifier()
+	if magnifierIsActiveVerify(
+		magnifier,
+		MagnifierAction.PAN_RIGHT,
+	):
+		edgeMessage = magnifier._pan(MagnifierAction.PAN_RIGHT)
+		if edgeMessage:
+			sayEdgeMessage("Right")
+
+
+def panUp() -> None:
+	"""Pan the magnifier up"""
+	magnifier: Magnifier = getMagnifier()
+	if magnifierIsActiveVerify(
+		magnifier,
+		MagnifierAction.PAN_UP,
+	):
+		edgeMessage = magnifier._pan(MagnifierAction.PAN_UP)
+		if edgeMessage:
+			sayEdgeMessage("Top")
+
+
+def panDown() -> None:
+	"""Pan the magnifier down"""
+	magnifier: Magnifier = getMagnifier()
+	if magnifierIsActiveVerify(
+		magnifier,
+		MagnifierAction.PAN_DOWN,
+	):
+		edgeMessage = magnifier._pan(MagnifierAction.PAN_DOWN)
+		if edgeMessage:
+			sayEdgeMessage("Bottom")
+
+
+def panToLeftEdge() -> None:
+	"""Pan the magnifier to the left edge"""
+	magnifier: Magnifier = getMagnifier()
+	if magnifierIsActiveVerify(
+		magnifier,
+		MagnifierAction.PAN_LEFT_EDGE,
+	):
+		edgeMessage = magnifier._pan(MagnifierAction.PAN_LEFT_EDGE)
+		if edgeMessage:
+			sayEdgeMessage("Left")
+
+
+def panToRightEdge() -> None:
+	"""Pan the magnifier to the right edge"""
+	magnifier: Magnifier = getMagnifier()
+	if magnifierIsActiveVerify(
+		magnifier,
+		MagnifierAction.PAN_RIGHT_EDGE,
+	):
+		edgeMessage = magnifier._pan(MagnifierAction.PAN_RIGHT_EDGE)
+		if edgeMessage:
+			sayEdgeMessage("Right")
+
+
+def panToTopEdge() -> None:
+	"""Pan the magnifier to the top edge"""
+	magnifier: Magnifier = getMagnifier()
+	if magnifierIsActiveVerify(
+		magnifier,
+		MagnifierAction.PAN_TOP_EDGE,
+	):
+		edgeMessage = magnifier._pan(MagnifierAction.PAN_TOP_EDGE)
+		if edgeMessage:
+			sayEdgeMessage("Top")
+
+
+def panToBottomEdge() -> None:
+	"""Pan the magnifier to the bottom edge"""
+	magnifier: Magnifier = getMagnifier()
+	if magnifierIsActiveVerify(
+		magnifier,
+		MagnifierAction.PAN_BOTTOM_EDGE,
+	):
+		edgeMessage = magnifier._pan(MagnifierAction.PAN_BOTTOM_EDGE)
+		if edgeMessage:
+			sayEdgeMessage("Bottom")
 
 
 def toggleFilter() -> None:
@@ -235,3 +319,24 @@ def magnifierIsFullscreenVerify(
 			).format(action=action.displayString),
 		)
 		return False
+
+
+def sayZoomMessage(zoomLevel: float):
+	ui.message(
+		pgettext(
+			"magnifier",
+			# Translators: Message announced when zooming in with {zoomLevel} being the target zoom level.
+			"Zooming in with {zoomLevel} level",
+		).format(zoomLevel=zoomLevel),
+	)
+
+
+def sayEdgeMessage(edge: str):
+	"""Annonce wich edge reached."""
+	ui.message(
+		pgettext(
+			"magnifier",
+			# Translators: Message announced when arriving at the left edge.
+			f"{edge} edge",
+		),
+	)
