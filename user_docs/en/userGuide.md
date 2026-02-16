@@ -1539,6 +1539,14 @@ Once the magnifier is enabled, you can use the following keyboard commands to co
 |Toggle filter of the magnifier | None |Cycles through available color filters (normal, grayscale, inverted)|
 |Toggle focus mode for the full-screen magnifier | None |Cycles through focus tracking modes (center, border, relative)|
 |Launch spotlight if magnifier is full-screen |`NVDA+shift+l` |Activates spotlight mode for focused reading or presentations|
+|Pan left |`NVDA+alt+leftArrow` |Pan the magnified view to the left by the specified panning step size.|
+|Pan right |`NVDA+alt+rightArrow` |Pan the magnified view to the right by the specified panning step size.|
+|Pan up |`NVDA+alt+upArrow` |Pan the magnified view upwards by the specified panning step size.|
+|Pan down |`NVDA+alt+downArrow` |Pan the magnified view downwards by the specified panning step size.|
+|Pan to left edge |`NVDA+shift+alt+leftArrow` |Pan the magnified view directly to the left edge of the screen.|
+|Pan to right edge |`NVDA+shift+alt+rightArrow` |Pan the magnified view directly to the right edge of the screen.|
+|Pan to top edge |`NVDA+shift+alt+upArrow` |Pan the magnified view directly to the top edge of the screen.|
+|Pan to bottom edge |`NVDA+shift+alt+downArrow` |Pan the magnified view directly to the bottom edge of the screen.|
 
 <!-- KC:endInclude -->
 
@@ -2847,20 +2855,10 @@ The actual pixel distance will automatically adjust based on your current zoom l
 Note: Pan commands allow you to manually move the magnified view in any direction, independent of the focus tracking mode.
 Available pan actions include:
 
-| Name |Key |Description|
-|---|---|---|
-|Pan left |`NVDA+alt+leftArrow` |Pan the magnified view to the left by the specified panning step size.|
-|Pan right |`NVDA+alt+rightArrow` |Pan the magnified view to the right by the specified panning step size.|
-|Pan up |`NVDA+alt+upArrow` |Pan the magnified view upwards by the specified panning step size.|
-|Pan down |`NVDA+alt+downArrow` |Pan the magnified view downwards by the specified panning step size.|
-|Pan to left edge |`NVDA+shift+alt+leftArrow` |Pan the magnified view directly to the left edge of the screen.|
-|Pan to right edge |`NVDA+shift+alt+rightArrow` |Pan the magnified view directly to the right edge of the screen.|
-|Pan to top edge |`NVDA+shift+alt+upArrow` |Pan the magnified view directly to the top edge of the screen.|
-|Pan to bottom edge |`NVDA+shift+alt+downArrow` |Pan the magnified view directly to the bottom edge of the screen.|
-
 | . {.hideHeaderRow} |.|
 |---|---|
 |Options |1 to 100|
+|Default |10|
 
 ##### Keep mouse centered {#MagnifierKeepMouseCentered}
 
