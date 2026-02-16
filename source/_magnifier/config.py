@@ -1,5 +1,5 @@
 # A part of NonVisual Desktop Access (NVDA)
-# Copyright (C) 2025-2026 NV Access Limited, Antoine Haffreingue
+# Copyright (C) 2025 NV Access Limited, Antoine Haffreingue
 # This file may be used under the terms of the GNU General Public License, version 2 or later, as modified by the NVDA license.
 # For full terms and any additional permissions, see the NVDA license file: https://github.com/nvaccess/nvda/blob/master/copying.txt
 
@@ -20,6 +20,11 @@ class ZoomLevel:
 	MAX_ZOOM: float = 10.0
 	MIN_ZOOM: float = 1.0
 	STEP_FACTOR: float = 0.5
+	ZOOM_MESSAGE = pgettext(
+		"magnifier",
+		# Translators: Message announced when zooming in with {zoomLevel} being the target zoom level.
+		"{zoomLevel}x",
+	)
 
 	@classmethod
 	def zoom_range(cls) -> list[float]:
@@ -37,12 +42,18 @@ class ZoomLevel:
 		Return localized zoom level strings.
 		"""
 		return [
-			# Translators: Zoom level string shown in settings and messages.
-			pgettext("magnifier", "{zoomLevel}x").format(
+			cls.ZOOM_MESSAGE.format(
 				zoomLevel=f"{value:.1f}",
 			)
 			for value in cls.zoom_range()
 		]
+
+
+EDGE_MESSAGE = pgettext(
+	"magnifier",
+	# Translators: Message announced when arriving at the {edge} edge.
+	"{edge} edge",
+)
 
 
 def getDefaultZoomLevel() -> float:

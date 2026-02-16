@@ -213,13 +213,13 @@ class TestMagnifier(_TestMagnifier):
 		centerValue = centerX if axis == "x" else centerY
 
 		with patch("_magnifier.magnifier.winUser.setCursorPos"):
-			# Test normal pan - no bumping (position changes)
-			isBumping = self.magnifier._pan(action)
-			self.assertFalse(isBumping)
+			# Test normal pan - movement succeeds (position changes)
+			hasMoved = self.magnifier._pan(action)
+			self.assertTrue(hasMoved)
 			currentValue = getattr(self.magnifier._currentCoordinates, axis)
 			self.assertEqual(currentValue, centerValue + direction * expectedPanPixels)
 
-			# Test reaching edge - no bumping on first contact (position changes)
+			# Test reaching edge - movement succeeds on first contact (position changes to edge)
 			if axis == "x":
 				self.magnifier._currentCoordinates = Coordinates(
 					edgeValue - direction * expectedPanPixels,
@@ -231,14 +231,14 @@ class TestMagnifier(_TestMagnifier):
 					edgeValue - direction * expectedPanPixels,
 				)
 
-			isBumping = self.magnifier._pan(action)
-			self.assertFalse(isBumping)
+			hasMoved = self.magnifier._pan(action)
+			self.assertTrue(hasMoved)
 			currentValue = getattr(self.magnifier._currentCoordinates, axis)
 			self.assertEqual(currentValue, edgeValue)
 
-			# Test bumping against edge - should announce (already at edge, no movement)
-			isBumping = self.magnifier._pan(action)
-			self.assertTrue(isBumping)
+			# Test trying to pan beyond edge - movement fails (already at edge, no movement)
+			hasMoved = self.magnifier._pan(action)
+			self.assertFalse(hasMoved)
 			currentValue = getattr(self.magnifier._currentCoordinates, axis)
 			self.assertEqual(currentValue, edgeValue)
 
@@ -254,15 +254,15 @@ class TestMagnifier(_TestMagnifier):
 		edgeValue = getattr(self.magnifier._panMargin, edgeAttr)
 
 		with patch("_magnifier.magnifier.winUser.setCursorPos"):
-			# Test jump to edge - no bumping (movement occurs)
-			isBumping = self.magnifier._pan(action)
-			self.assertFalse(isBumping)
+			# Test jump to edge - movement succeeds (moves to edge)
+			hasMoved = self.magnifier._pan(action)
+			self.assertTrue(hasMoved)
 			currentValue = getattr(self.magnifier._currentCoordinates, axis)
 			self.assertEqual(currentValue, edgeValue)
 
-			# Test bumping at edge - should announce (already at edge, no movement)
-			isBumping = self.magnifier._pan(action)
-			self.assertTrue(isBumping)
+			# Test trying to pan to edge again - movement fails (already at edge, no movement)
+			hasMoved = self.magnifier._pan(action)
+			self.assertFalse(hasMoved)
 			currentValue = getattr(self.magnifier._currentCoordinates, axis)
 			self.assertEqual(currentValue, edgeValue)
 

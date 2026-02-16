@@ -223,7 +223,7 @@ class Magnifier:
 		Pan the magnifier in the specified direction
 
 		:param action: The pan action (left, right, up, down)
-		:return: True if bumping against the edge (already at edge), False otherwise.
+		:return: True if the actions results in the pan successfully moving, False otherwise.
 		"""
 		x, y = self._currentCoordinates
 		originalX, originalY = x, y
@@ -269,8 +269,8 @@ class Magnifier:
 		self._lastMousePosition = Coordinates(x, y)
 		self._doUpdate()
 
-		# Return True only when bumping (position didn't change = already at edge)
-		return (x, y) == (originalX, originalY)
+		# Return True only when successfully panning
+		return (x, y) != (originalX, originalY)
 
 	def _startTimer(self, callback: Callable[[], None] = None) -> None:
 		"""

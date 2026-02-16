@@ -15,6 +15,8 @@ from .config import (
 	getDefaultZoomLevelString,
 	getDefaultFilter,
 	getDefaultFullscreenMode,
+	ZoomLevel,
+	EDGE_MESSAGE,
 )
 from .magnifier import Magnifier
 from .fullscreenMagnifier import FullScreenMagnifier
@@ -80,7 +82,7 @@ def zoomIn() -> None:
 		MagnifierAction.ZOOM_IN,
 	):
 		magnifier._zoom(Direction.IN)
-		sayZoomMessage(magnifier.zoomLevel)
+		ui.message(ZoomLevel.ZOOM_MESSAGE.format(zoomLevel=magnifier.zoomLevel))
 
 
 def zoomOut() -> None:
@@ -91,7 +93,7 @@ def zoomOut() -> None:
 		MagnifierAction.ZOOM_OUT,
 	):
 		magnifier._zoom(Direction.OUT)
-		sayZoomMessage(magnifier.zoomLevel)
+		ui.message(ZoomLevel.ZOOM_MESSAGE.format(zoomLevel=magnifier.zoomLevel))
 
 
 def panLeft() -> None:
@@ -101,9 +103,10 @@ def panLeft() -> None:
 		magnifier,
 		MagnifierAction.PAN_LEFT,
 	):
-		hasNotMoved = magnifier._pan(MagnifierAction.PAN_LEFT)
-		if hasNotMoved:
-			sayhasNotMoved("Left")
+		hasMoved = magnifier._pan(MagnifierAction.PAN_LEFT)
+		if not hasMoved:
+			# Translators: Message announced when trying to pan left but the left edge of the magnifier view is already reached.
+			ui.message(EDGE_MESSAGE.format(edge="Left"))
 
 
 def panRight() -> None:
@@ -113,9 +116,10 @@ def panRight() -> None:
 		magnifier,
 		MagnifierAction.PAN_RIGHT,
 	):
-		hasNotMoved = magnifier._pan(MagnifierAction.PAN_RIGHT)
-		if hasNotMoved:
-			sayhasNotMoved("Right")
+		hasMoved = magnifier._pan(MagnifierAction.PAN_RIGHT)
+		if not hasMoved:
+			# Translators: Message announced when trying to pan right but the right edge of the magnifier view is already reached.
+			ui.message(EDGE_MESSAGE.format(edge="Right"))
 
 
 def panUp() -> None:
@@ -125,9 +129,10 @@ def panUp() -> None:
 		magnifier,
 		MagnifierAction.PAN_UP,
 	):
-		hasNotMoved = magnifier._pan(MagnifierAction.PAN_UP)
-		if hasNotMoved:
-			sayhasNotMoved("Top")
+		hasMoved = magnifier._pan(MagnifierAction.PAN_UP)
+		if not hasMoved:
+			# Translators: Message announced when trying to pan up but the top edge of the magnifier view is already reached.
+			ui.message(EDGE_MESSAGE.format(edge="Top"))
 
 
 def panDown() -> None:
@@ -137,9 +142,10 @@ def panDown() -> None:
 		magnifier,
 		MagnifierAction.PAN_DOWN,
 	):
-		hasNotMoved = magnifier._pan(MagnifierAction.PAN_DOWN)
-		if hasNotMoved:
-			sayhasNotMoved("Bottom")
+		hasMoved = magnifier._pan(MagnifierAction.PAN_DOWN)
+		if not hasMoved:
+			# Translators: Message announced when trying to pan down but the bottom edge of the magnifier view is already reached.
+			ui.message(EDGE_MESSAGE.format(edge="Bottom"))
 
 
 def panToLeftEdge() -> None:
@@ -149,9 +155,10 @@ def panToLeftEdge() -> None:
 		magnifier,
 		MagnifierAction.PAN_LEFT_EDGE,
 	):
-		hasNotMoved = magnifier._pan(MagnifierAction.PAN_LEFT_EDGE)
-		if hasNotMoved:
-			sayhasNotMoved("Left")
+		hasMoved = magnifier._pan(MagnifierAction.PAN_LEFT_EDGE)
+		if not hasMoved:
+			# Translators: Message announced when trying to pan to the left edge but the left edge of the magnifier view is already reached.
+			ui.message(EDGE_MESSAGE.format(edge="Left"))
 
 
 def panToRightEdge() -> None:
@@ -161,9 +168,10 @@ def panToRightEdge() -> None:
 		magnifier,
 		MagnifierAction.PAN_RIGHT_EDGE,
 	):
-		hasNotMoved = magnifier._pan(MagnifierAction.PAN_RIGHT_EDGE)
-		if hasNotMoved:
-			sayhasNotMoved("Right")
+		hasMoved = magnifier._pan(MagnifierAction.PAN_RIGHT_EDGE)
+		if not hasMoved:
+			# Translators: Message announced when trying to pan to the right edge but the right edge of the magnifier view is already reached.
+			ui.message(EDGE_MESSAGE.format(edge="Right"))
 
 
 def panToTopEdge() -> None:
@@ -173,9 +181,10 @@ def panToTopEdge() -> None:
 		magnifier,
 		MagnifierAction.PAN_TOP_EDGE,
 	):
-		hasNotMoved = magnifier._pan(MagnifierAction.PAN_TOP_EDGE)
-		if hasNotMoved:
-			sayhasNotMoved("Top")
+		hasMoved = magnifier._pan(MagnifierAction.PAN_TOP_EDGE)
+		if not hasMoved:
+			# Translators: Message announced when trying to pan to the top edge but the top edge of the magnifier view is already reached.
+			ui.message(EDGE_MESSAGE.format(edge="Top"))
 
 
 def panToBottomEdge() -> None:
@@ -185,9 +194,10 @@ def panToBottomEdge() -> None:
 		magnifier,
 		MagnifierAction.PAN_BOTTOM_EDGE,
 	):
-		hasNotMoved = magnifier._pan(MagnifierAction.PAN_BOTTOM_EDGE)
-		if hasNotMoved:
-			sayhasNotMoved("Bottom")
+		hasMoved = magnifier._pan(MagnifierAction.PAN_BOTTOM_EDGE)
+		if not hasMoved:
+			# Translators: Message announced when trying to pan to the bottom edge but the bottom edge of the magnifier view is already reached.
+			ui.message(EDGE_MESSAGE.format(edge="Bottom"))
 
 
 def toggleFilter() -> None:
@@ -319,24 +329,3 @@ def magnifierIsFullscreenVerify(
 			).format(action=action.displayString),
 		)
 		return False
-
-
-def sayZoomMessage(zoomLevel: float):
-	ui.message(
-		pgettext(
-			"magnifier",
-			# Translators: Message announced when zooming in with {zoomLevel} being the target zoom level.
-			"{zoomLevel}x",
-		).format(zoomLevel=zoomLevel),
-	)
-
-
-def sayhasNotMoved(edge: str):
-	"""Annonce wich edge reached."""
-	ui.message(
-		pgettext(
-			"magnifier",
-			# Translators: Message announced when arriving at the {edge} edge.
-			"{edge} edge",
-		).format(edge=edge),
-	)
