@@ -24,7 +24,7 @@ from .utils.types import (
 	Filter,
 )
 from .utils.focusManager import FocusManager
-from .config import getDefaultZoomLevel, getDefaultFilter, ZoomLevel
+from .config import getDefaultZoomLevel, getDefaultFilter, ZoomLevel, isTrueCentered
 
 
 class Magnifier:
@@ -205,14 +205,11 @@ class Magnifier:
 	def _getMagnifierPosition(
 		self,
 		coordinates: Coordinates,
-		isTrueCentered: bool = False,
 	) -> MagnifierPosition:
 		"""
 		Compute the top-left corner of the magnifier window centered on (x, y)
 
 		:param coordinates: The (x, y) coordinates to center the magnifier on
-		:param isTrueCentered: For fullscreen magnifier, whether to keep the focus truly centered or allow it to move towards edges
-				(only applicable for fullscreen magnifier, set to False for other types or if true centering is not desired)
 
 		:return: The position and size of the magnifier window
 		"""
@@ -226,7 +223,7 @@ class Magnifier:
 		top = int(y - (visibleHeight / 2))
 
 		# Clamp to screen boundaries only if not in true center mode
-		if not isTrueCentered:
+		if not isTrueCentered():
 			left = max(0, min(left, int(self._displayOrientation.width - visibleWidth)))
 			top = max(0, min(top, int(self._displayOrientation.height - visibleHeight)))
 

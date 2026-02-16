@@ -103,7 +103,7 @@ class TestMagnifierEndToEnd(_TestMagnifier):
 		magnifier = FullScreenMagnifier()
 
 		# Test position calculation
-		left, top, width, height = magnifier._getMagnifierPosition((500, 400), isTrueCentered=False)
+		left, top, width, height = magnifier._getMagnifierPosition((500, 400))
 
 		# Basic checks
 		self.assertIsInstance(left, int)
