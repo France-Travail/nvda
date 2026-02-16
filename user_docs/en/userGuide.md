@@ -1570,6 +1570,8 @@ The magnifier offers three different modes for tracking focus and determining wh
 
 * **Center**: The magnified area is centered on the current focus position.
 This mode keeps the focused element at the center of the screen and clamps to the screen edge.
+We can activate true center mode in the [Magnifier settings](#MagnifierSettings), see more in the true center mode section below(#TrueCenterMode).
+
 * **Border**: The magnified area only moves when the focus approaches the edge of the visible area.
 This mode provides a more stable view, only adjusting when necessary.
 * **Relative**: The magnified area maintains the relative position of the focus within the screen.
@@ -1580,7 +1582,9 @@ NVDA will announce the name of the currently selected mode.
 
 The default focus mode when the magnifier is first enabled can be configured in the [Magnifier settings](#MagnifierSettings).
 
-**True Center Option**: Change the default behavior of the center mode to always keep the focus at the center of the screen, even if it means displaying off-screen content.
+### True Center Mode {#TrueCenterMode}
+
+Change the default behavior of the center mode to always keep the focus at the center of the screen, even if it means displaying off-screen content.
 When this option is disabled, the magnifier will clamp to the screen edge when the focus is near the edge of the screen, which can prevent showing off-screen content but may not keep the focus perfectly centered.
 
 ### Spotlight Mode {#MagnifierSpotlight}
