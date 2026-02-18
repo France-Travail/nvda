@@ -17,6 +17,8 @@
 * Added an unassigned Quick Navigation Command for jumping to next/previous slider in browse mode. (#17005, @hdzrvcc0X74)
 * New types have been added for Speech Dictionary entries, such as part of word and start of word.
 Consult the speech dictionaries section in the User Guide for more details. (#19506, @LeonarddeR)
+* When resetting the configuration to factory defaults from the NVDA menu, a dialog is now shown afterwards with an Undo button to restore the previous configuration.
+The triple-press keyboard shortcut (`NVDA+ctrl+r`) is not affected, as it is intended for recovery scenarios. (#19575, @bramd)
 
 ### Changes
 
@@ -31,6 +33,7 @@ Consult the speech dictionaries section in the User Guide for more details. (#19
 * In Microsoft Word with UIA enabled, page changes are now correctly announced when navigating table rows that span multiple pages. (#19386, @akj)
 * Fixed excessive resource usage and highlight flickering when using Visual Highlight. (#17434, @hwf1324)
 * The `NVDA+k` command now correctly reports the destination of links containing formatted text, such as bold or italics. (#19428, @Cary-rowen)
+* Configuration profile triggers now activate when the Add-on Store is open. (#19583, @bramd)
 
 ### Changes for Developers
 
@@ -39,6 +42,10 @@ Consult the speech dictionaries section in the User Guide for more details. (#19
 Please refer to [the developer guide](https://download.nvaccess.org/documentation/developerGuide.html#API) for information on NVDA's API deprecation and removal process.
 
 * Subclasses of `browseMode.BrowseModeDocumentTreeInterceptor` that support screen layout being on and off should override the `_toggleScreenLayout` method, rather than implementing `script_toggleScreenLayout` directly. (#19487)
+* The `scons tests` build target has been removed, as it was misleadingly named.
+It only ran the translation string comment check, which is equivalent to `scons checkPot`.
+Use the individual test commands instead: `scons checkPot`, `rununittests.bat`, `runsystemtests.bat`, `runlint.bat`. (#19606, @bramd)
+* Updated Python 3.13.11 to 3.13.12 (#19572, @dpy013)
 
 #### Deprecations
 
@@ -154,7 +161,7 @@ It currently includes Screen Curtain's settings (previously in the "Vision" cate
 ### Bug Fixes
 
 * Remote Access:
-  * Improved user notifications when connecting as the controlled computer fails. (#19103, @hdzrvcc0X74)
+  * Improved user notifications when connecting as the controlled computer fails. (#19103, @tareh7z)
   * NVDA will no longer open multiple disconnection confirmation dialogs if the action is triggered repeatedly. (#19442, @Cary-rowen)
 * Fixed `<` not being escaped in MathML in PDF documents. (#18520, @NSoiffer)
 * When unicode normalization is enabled for speech, navigating by character will again correctly announce combining diacritic characters like acute ( &#x0301; ). (#18722, @LeonarddeR)
@@ -164,8 +171,9 @@ It currently includes Screen Curtain's settings (previously in the "Vision" cate
 * When NVDA is configured to update add-ons automatically in the background, add-ons can be properly updated. (#18965, @nvdaes)
 * Attempting to install an add-on that requires a newer version of NVDA from File Explorer no longer fails silently or shows the incompatible add-ons dialog. (#19260, #19261)
 * Fixed a case where braille output would fail with an error. (#19025, @LeonarddeR)
-* Battery time announcements now skip redundant "0 hours" and "0 minutes" and use proper singular/plural forms. (#9003, @hdzrvcc0X74)
+* Battery time announcements now skip redundant "0 hours" and "0 minutes" and use proper singular/plural forms. (#9003, @tareh7z)
 * When a synthesizer has a fallback language for the current dialect, the language of the text being read will no longer be reported as unsupported. (#18876, @nvdaes)
+* If the speech synthesizer is set to eSpeak NG and it fails to load when NVDA starts, NVDA will now attempt to fall back to OneCore before resorting to no speech. (#19603)
 * Certain settings will no longer erroneously be saved to disk when running NVDA from the launcher. (#18171)
 * Incorrect information is no longer displayed in braille when navigating the list of messages in Outlook Classic. (#18993, @nvdaes)
 * NVDA now detects and stops repeated crash loops to prevent system lockups when startup failures occur. (#19133, @derekriemer)
@@ -192,7 +200,7 @@ Add-ons will need to be re-tested and have their manifest updated.
   * uv to 0.9.11 (#19162)
   * Ruff to 0.14.5 (#19162)
   * comtypes to 1.4.13 (#19196)
-  * cryptography to 46.0.3 (#19196)
+  * cryptography to 46.0.5 (#19196, #19601)
   * Configobj to commit `9c8a0a80` (#19196)
   * Requests to 2.32.5 (#19196)
   * url-normalize to 2.2.1 (#19196)
@@ -216,6 +224,7 @@ On ARM64 machines with Windows 11, these ARM64EC libraries are loaded instead of
 * In `braille.py`, the `FormattingMarker` class has a new `shouldBeUsed` method, to determine if the formatting marker key should be reported (#7608, @nvdaes)
 * Added `api.fakeNVDAObjectClasses` set and `api.isFakeNVDAObject` function to identify fake NVDAObject instances. (#19168, @hwf1324)
 * NVDA no longer includes the Microsoft Universal C Runtime. (#19508)
+* `synthDriverHandler.setSynth` and `synthDriverHandler.findAndSetNextSynth` now attempt to find fallback synthesizers starting from the start of `defaultSynthPriorityList`, rather than starting immediately after `name` or `currentSynthName`, respectively. (#19603)
 
 #### API Breaking Changes
 
