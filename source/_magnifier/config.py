@@ -49,13 +49,6 @@ class ZoomLevel:
 		]
 
 
-EDGE_MESSAGE = pgettext(
-	"magnifier",
-	# Translators: Message announced when arriving at the {edge} edge.
-	"{edge} edge",
-)
-
-
 def getDefaultZoomLevel() -> float:
 	"""
 	Get default zoom level from config.

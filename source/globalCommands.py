@@ -4993,7 +4993,7 @@ class GlobalCommands(ScriptableObject):
 		self,
 		gesture: inputCore.InputGesture,
 	) -> None:
-		_magnifier.commands.zoomIn()
+		_magnifier.commands.zoom(_magnifier.commands.Direction.IN)
 
 	@script(
 		description=_(
@@ -5007,7 +5007,7 @@ class GlobalCommands(ScriptableObject):
 		self,
 		gesture: inputCore.InputGesture,
 	) -> None:
-		_magnifier.commands.zoomOut()
+		_magnifier.commands.zoom(_magnifier.commands.Direction.OUT)
 
 	@script(
 		description=_(
@@ -5021,7 +5021,7 @@ class GlobalCommands(ScriptableObject):
 		self,
 		gesture: inputCore.InputGesture,
 	) -> None:
-		_magnifier.commands.panLeft()
+		_magnifier.commands.pan(_magnifier.commands.MagnifierAction.PAN_LEFT)
 
 	@script(
 		description=_(
@@ -5035,7 +5035,7 @@ class GlobalCommands(ScriptableObject):
 		self,
 		gesture: inputCore.InputGesture,
 	) -> None:
-		_magnifier.commands.panRight()
+		_magnifier.commands.pan(_magnifier.commands.MagnifierAction.PAN_RIGHT)
 
 	@script(
 		description=_(
@@ -5049,7 +5049,7 @@ class GlobalCommands(ScriptableObject):
 		self,
 		gesture: inputCore.InputGesture,
 	) -> None:
-		_magnifier.commands.panUp()
+		_magnifier.commands.pan(_magnifier.commands.MagnifierAction.PAN_UP)
 
 	@script(
 		description=_(
@@ -5063,7 +5063,7 @@ class GlobalCommands(ScriptableObject):
 		self,
 		gesture: inputCore.InputGesture,
 	) -> None:
-		_magnifier.commands.panDown()
+		_magnifier.commands.pan(_magnifier.commands.MagnifierAction.PAN_DOWN)
 
 	@script(
 		description=_(
@@ -5077,7 +5077,7 @@ class GlobalCommands(ScriptableObject):
 		self,
 		gesture: inputCore.InputGesture,
 	) -> None:
-		_magnifier.commands.panToLeftEdge()
+		_magnifier.commands.pan(_magnifier.commands.MagnifierAction.PAN_LEFT_EDGE)
 
 	@script(
 		description=_(
@@ -5091,7 +5091,7 @@ class GlobalCommands(ScriptableObject):
 		self,
 		gesture: inputCore.InputGesture,
 	) -> None:
-		_magnifier.commands.panToRightEdge()
+		_magnifier.commands.pan(_magnifier.commands.MagnifierAction.PAN_RIGHT_EDGE)
 
 	@script(
 		description=_(
@@ -5105,7 +5105,7 @@ class GlobalCommands(ScriptableObject):
 		self,
 		gesture: inputCore.InputGesture,
 	) -> None:
-		_magnifier.commands.panToTopEdge()
+		_magnifier.commands.pan(_magnifier.commands.MagnifierAction.PAN_TOP_EDGE)
 
 	@script(
 		description=_(
@@ -5119,7 +5119,7 @@ class GlobalCommands(ScriptableObject):
 		self,
 		gesture: inputCore.InputGesture,
 	) -> None:
-		_magnifier.commands.panToBottomEdge()
+		_magnifier.commands.pan(_magnifier.commands.MagnifierAction.PAN_BOTTOM_EDGE)
 
 	@script(
 		description=_(
