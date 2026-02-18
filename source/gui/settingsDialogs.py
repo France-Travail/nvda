@@ -5968,7 +5968,7 @@ class MagnifierPanel(SettingsPanel):
 			choices=fullscreenModeChoices,
 		)
 		self.bindHelpEvent(
-			"MagnifierFullscreenFocusModes",
+			"MagnifierDefaultFullscreenFocusMode",
 			self.defaultFullscreenModeList,
 		)
 
