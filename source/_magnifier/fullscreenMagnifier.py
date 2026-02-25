@@ -160,8 +160,18 @@ class FullScreenMagnifier(Magnifier):
 
 	def moveMouseToScreen(self) -> None:
 		"""
-		keep mouse in screen
+		Move mouse to center of magnified view.
+		Skip if a mouse button is currently pressed to avoid interfering with clicks.
 		"""
+		# Check if any mouse button is pressed (left, right, or middle)
+		if (
+			winUser.getKeyState(winUser.VK_LBUTTON) < 0
+			or winUser.getKeyState(winUser.VK_RBUTTON) < 0
+			or winUser.getKeyState(winUser.VK_MBUTTON) < 0
+		):
+			log.debug("Mouse button pressed, skipping cursor repositioning to avoid interfering with click")
+			return
+
 		left, top, visibleWidth, visibleHeight = self._getMagnifierPosition(
 			self._currentCoordinates,
 		)
