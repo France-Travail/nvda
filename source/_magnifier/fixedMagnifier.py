@@ -14,11 +14,17 @@ from .utils.types import (
 	Size,
 	MagnifierType,
 	WindowMagnifierParameters,
+	MagnifierParameters,
 	Filter,
 	FixedWindowPosition,
 )
 from .utils.windowCreator import WindowedMagnifier
-from .config import getDefaultFixedWindowWidth, getDefaultFixedWindowHeight, getDefaultFixedWindowPosition
+from .config import (
+	getDefaultFixedWindowWidth,
+	getDefaultFixedWindowHeight,
+	getDefaultFixedWindowPosition,
+	isTrueCentered,
+)
 
 import wx
 
@@ -97,4 +103,33 @@ class FixedMagnifier(Magnifier, WindowedMagnifier):
 			windowSize=windowSize,
 			windowPosition=position,
 			styles=wx.FRAME_NO_TASKBAR | wx.STAY_ON_TOP,
+		)
+
+	def _getMagnifierParameters(self, coordinates: Coordinates) -> MagnifierParameters:
+		"""
+		Compute the top-left corner of the magnifier window centered on (x, y)
+
+		:param coordinates: The (x, y) coordinates to center the magnifier on
+		:param displaySize: The size of the display area (width, height) - used to calculate capture size
+
+		:return: The size, position and filter of the magnifier window
+		"""
+		x, y = coordinates
+		# Calculate the size of the capture area at the current zoom level
+		magnifierWidth = self._windowParameters.windowSize.width / self.zoomLevel
+		magnifierHeight = self._windowParameters.windowSize.height / self.zoomLevel
+
+		# Compute the top-left corner so that (x, y) is at the center
+		left = int(x - (magnifierWidth / 2))
+		top = int(y - (magnifierHeight / 2))
+
+		# Clamp to screen boundaries only if not in true center mode
+		if not isTrueCentered():
+			left = max(0, min(left, int(self._displayOrientation.width - magnifierWidth)))
+			top = max(0, min(top, int(self._displayOrientation.height - magnifierHeight)))
+
+		return MagnifierParameters(
+			Size(int(magnifierWidth), int(magnifierHeight)),
+			Coordinates(left, top),
+			self._filterType,
 		)

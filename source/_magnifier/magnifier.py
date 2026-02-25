@@ -19,13 +19,12 @@ from winAPI._displayTracking import OrientationState, getPrimaryDisplayOrientati
 from .utils.types import (
 	MagnifierParameters,
 	Coordinates,
-	Size,
 	MagnifierType,
 	Direction,
 	Filter,
 )
 from .utils.focusManager import FocusManager
-from .config import getDefaultZoomLevel, getDefaultFilter, ZoomLevel, isTrueCentered
+from .config import getDefaultZoomLevel, getDefaultFilter, ZoomLevel
 
 
 class Magnifier:
@@ -212,22 +211,4 @@ class Magnifier:
 
 		:return: The size, position and filter of the magnifier window
 		"""
-		x, y = coordinates
-		# Calculate the size of the capture area at the current zoom level
-		magnifierWidth = self._displayOrientation.width / self.zoomLevel
-		magnifierHeight = self._displayOrientation.height / self.zoomLevel
-
-		# Compute the top-left corner so that (x, y) is at the center
-		left = int(x - (magnifierWidth / 2))
-		top = int(y - (magnifierHeight / 2))
-
-		# Clamp to screen boundaries only if not in true center mode
-		if not isTrueCentered():
-			left = max(0, min(left, int(self._displayOrientation.width - magnifierWidth)))
-			top = max(0, min(top, int(self._displayOrientation.height - magnifierHeight)))
-
-		return MagnifierParameters(
-			Size(int(magnifierWidth), int(magnifierHeight)),
-			Coordinates(left, top),
-			self._filterType,
-		)
+		raise NotImplementedError("Subclasses must implement this method")

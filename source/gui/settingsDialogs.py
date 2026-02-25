@@ -6038,18 +6038,6 @@ class MagnifierPanel(SettingsPanel):
 		)
 		self.trueCenterCheckBox.SetValue(magnifierConfig.isTrueCentered())
 
-		# KEEP MOUSE CENTERED
-		# Translators: The label for a checkbox to keep the mouse pointer centered in the magnifier view
-		keepMouseCenteredText = _("Keep &mouse pointer centered in magnifier view")
-		self.keepMouseCenteredCheckBox = generalGroup.addItem(
-			wx.CheckBox(generalGroupBox, label=keepMouseCenteredText),
-		)
-		self.bindHelpEvent(
-			"magnifierKeepMouseCentered",
-			self.keepMouseCenteredCheckBox,
-		)
-		self.keepMouseCenteredCheckBox.SetValue(magnifierConfig.shouldKeepMouseCentered())
-
 		# MAGNIFIER TYPE SETTINGS
 		# Translators: The label for a setting in magnifier settings to select the default magnifier type
 		magnifierTypeLabelText = _("Default &magnifier type:")
@@ -6076,6 +6064,7 @@ class MagnifierPanel(SettingsPanel):
 		# magnifier settings panel
 		fullscreenGroupText = _("Fullscreen")
 		self.fullscreenGroupSizer = wx.StaticBoxSizer(wx.VERTICAL, self, label=fullscreenGroupText)
+		fullscreenGroupBox = self.fullscreenGroupSizer.GetStaticBox()
 		fullscreenGroup = guiHelper.BoxSizerHelper(self, sizer=self.fullscreenGroupSizer)
 		sHelper.addItem(fullscreenGroup)
 
@@ -6096,6 +6085,18 @@ class MagnifierPanel(SettingsPanel):
 		# Set default value from config
 		defaultFullscreenMode = magnifierConfig.getDefaultFullscreenMode()
 		self.defaultFullscreenModeList.SetSelection(list(FullScreenMode).index(defaultFullscreenMode))
+
+		# KEEP MOUSE CENTERED
+		# Translators: The label for a checkbox to keep the mouse pointer centered in the magnifier view
+		keepMouseCenteredText = _("Keep &mouse pointer centered in magnifier view")
+		self.keepMouseCenteredCheckBox = fullscreenGroup.addItem(
+			wx.CheckBox(fullscreenGroupBox, label=keepMouseCenteredText),
+		)
+		self.bindHelpEvent(
+			"magnifierKeepMouseCentered",
+			self.keepMouseCenteredCheckBox,
+		)
+		self.keepMouseCenteredCheckBox.SetValue(magnifierConfig.shouldKeepMouseCentered())
 
 		# FIXED MAGNIFIER GROUP
 		# Translators: This is the label for a group of fixed magnifier options in the
