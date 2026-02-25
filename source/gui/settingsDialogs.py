@@ -48,6 +48,7 @@ from _magnifier.utils.types import Filter, FullScreenMode
 import queueHandler
 import requests
 import speech
+import speechDictHandler
 import systemUtils
 import vision
 import vision.providerBase
@@ -1769,6 +1770,8 @@ class VoiceSettingsPanel(AutoSettingsMixin, SettingsPanel):
 
 		self._appendDelayedCharacterDescriptions(settingsSizerHelper)
 
+		self._appendSpeechDictionariesList(settingsSizerHelper)
+
 		minPitchChange = int(
 			config.conf.getConfigValidation(
 				("speech", self.driver.name, "capPitchChange"),
@@ -1838,7 +1841,7 @@ class VoiceSettingsPanel(AutoSettingsMixin, SettingsPanel):
 			d for d in characterProcessing.listAvailableSymbolDictionaryDefinitions() if d.userVisible
 		]
 		self.symbolDictionariesList: nvdaControls.CustomCheckListBox = settingsSizerHelper.addLabeledControl(
-			# Translators: Label of the list where user can enable or disable symbol dictionaires.
+			# Translators: Label of the list where user can enable or disable symbol dictionaries.
 			_("E&xtra dictionaries for character and symbol processing:"),
 			nvdaControls.CustomCheckListBox,
 			choices=[d.displayName for d in self._availableSymbolDictionaries],
@@ -1848,6 +1851,22 @@ class VoiceSettingsPanel(AutoSettingsMixin, SettingsPanel):
 			i for i, d in enumerate(self._availableSymbolDictionaries) if d.enabled
 		]
 		self.symbolDictionariesList.Select(0)
+
+	def _appendSpeechDictionariesList(self, settingsSizerHelper: guiHelper.BoxSizerHelper) -> None:
+		self._availableSpeechDictionaries = [
+			d for d in speechDictHandler.listAvailableSpeechDictDefinitions(forDisplay=True) if d.userVisible
+		]
+		self.speechDictionariesList: nvdaControls.CustomCheckListBox = settingsSizerHelper.addLabeledControl(
+			# Translators: Label of the list where user can enable or disable speech dictionaries.
+			_("Sp&eech dictionaries:"),
+			nvdaControls.CustomCheckListBox,
+			choices=[d.displayName for d in self._availableSpeechDictionaries],
+		)
+		self.bindHelpEvent("SpeechDictionaries", self.speechDictionariesList)
+		self.speechDictionariesList.CheckedItems = [
+			i for i, d in enumerate(self._availableSpeechDictionaries) if d.enabled
+		]
+		self.speechDictionariesList.Select(0)
 
 	def _appendSpeechModesList(self, settingsSizerHelper: guiHelper.BoxSizerHelper) -> None:
 		self._allSpeechModes = list(speech.SpeechMode)
@@ -1906,6 +1925,11 @@ class VoiceSettingsPanel(AutoSettingsMixin, SettingsPanel):
 		if set(currentSymbolDictionaries) != set(newSymbolDictionaries):
 			# Either included or excluded symbol dictionaries, so clear the cache.
 			characterProcessing.clearSpeechSymbols()
+		config.conf["speech"]["speechDictionaries"] = [
+			d.name
+			for i, d in enumerate(self._availableSpeechDictionaries)
+			if i in self.speechDictionariesList.CheckedItems
+		]
 		delayedDescriptions = self.delayedCharacterDescriptionsCheckBox.IsChecked()
 		config.conf["speech"]["delayedCharacterDescriptions"] = delayedDescriptions
 		config.conf["speech"][self.driver.name]["capPitchChange"] = self.capPitchChangeEdit.Value
@@ -2832,17 +2856,21 @@ class MathSettingsPanel(SettingsPanel):
 
 		# Translators: MathCAT's relative speed setting
 		relativeSpeedText = pgettext("math", "Relative speech rate")
+		minMathRate = int(config.conf.getConfigValidation(("math", "speech", "mathRate")).kwargs["min"])
+		maxMathRate = int(config.conf.getConfigValidation(("math", "speech", "mathRate")).kwargs["max"])
 		self.relativeSpeedSlider: nvdaControls.EnhancedInputSlider = speechGroup.addLabeledControl(
 			relativeSpeedText,
 			nvdaControls.EnhancedInputSlider,
-			minValue=10,
-			maxValue=100,
+			minValue=minMathRate,
+			maxValue=maxMathRate,
 		)
 		self.bindHelpEvent("MathRelativeSpeed", self.relativeSpeedSlider)
 		self.relativeSpeedSlider.SetValue(config.conf["math"]["speech"]["mathRate"])
 
 		# Translators: label for slider that specifies relative factor to increase or decrease pauses in the math speech
 		pauseFactorText = pgettext("math", "Pause factor")
+		# Note: the UI uses a log scale for pause factors.
+		# The values 1 - 14 get mapped onto 0 - 1056, which are the actual config values.
 		self.pauseFactorSlider: nvdaControls.EnhancedInputSlider = speechGroup.addLabeledControl(
 			pauseFactorText,
 			nvdaControls.EnhancedInputSlider,
@@ -3048,8 +3076,6 @@ class MathSettingsPanel(SettingsPanel):
 				),
 			)
 		)  # avoid log(0)
-		if pauseFactor > 1000:
-			pauseFactor = 1000
 		mathConf["speech"]["pauseFactor"] = pauseFactor
 		if self.speechSoundCheckBox.GetValue():
 			mathConf["speech"]["speechSound"] = "Beep"
@@ -3082,8 +3108,8 @@ class MathSettingsPanel(SettingsPanel):
 		)
 		selectedBrailleIndex = self.brailleMathCodeList.GetSelection()
 		mathConf["braille"]["brailleCode"] = self._brailleCodeIds[selectedBrailleIndex]
-		mcPrefs: MathCATUserPreferences = MathCATUserPreferences.fromNVDAConfig()
-		mcPrefs.save()
+		mcPrefs = MathCATUserPreferences.fromNVDAConfig()
+		mcPrefs.apply()
 
 
 class DocumentFormattingPanel(SettingsPanel):
@@ -3534,7 +3560,7 @@ class AudioPanel(SettingsPanel):
 		self.bindHelpEvent("SelectSynthesizerDuckingMode", self.duckingList)
 		index = config.conf["audio"]["audioDuckingMode"]
 		self.duckingList.SetSelection(index)
-		if not audioDucking.isAudioDuckingSupported():
+		if not audioDucking.isAudioDuckingSupported() or audioDucking._isAudioDuckingSuspended():
 			self.duckingList.Disable()
 
 		# Translators: This is the label for a checkbox control in the
@@ -5955,7 +5981,7 @@ class MagnifierPanel(SettingsPanel):
 			choices=zoomChoices,
 		)
 		self.bindHelpEvent(
-			"magnifierDefaultZoom",
+			"MagnifierDefaultZoom",
 			self.defaultZoomList,
 		)
 
@@ -6015,9 +6041,19 @@ class MagnifierPanel(SettingsPanel):
 			choices=fullscreenModeChoices,
 		)
 		self.bindHelpEvent(
-			"magnifierDefaultFullscreenMode",
+			"MagnifierDefaultFullscreenFocusMode",
 			self.defaultFullscreenModeList,
 		)
+
+		# TRUE CENTER
+		# Translators: The label for a setting in magnifier settings to select whether true center is used in full-screen mode
+		trueCenterText = _("Use &true center in fullscreen mode")
+		self.trueCenterCheckBox = sHelper.addItem(wx.CheckBox(self, label=trueCenterText))
+		self.bindHelpEvent(
+			"MagnifierUseTrueCenter",
+			self.trueCenterCheckBox,
+		)
+		self.trueCenterCheckBox.SetValue(magnifierConfig.isTrueCentered())
 
 		# Set default value from config
 		defaultFullscreenMode = magnifierConfig.getDefaultFullscreenMode()
@@ -6028,7 +6064,7 @@ class MagnifierPanel(SettingsPanel):
 		keepMouseCenteredText = _("Keep &mouse pointer centered in magnifier view")
 		self.keepMouseCenteredCheckBox = sHelper.addItem(wx.CheckBox(self, label=keepMouseCenteredText))
 		self.bindHelpEvent(
-			"magnifierKeepMouseCentered",
+			"MagnifierKeepMouseCentered",
 			self.keepMouseCenteredCheckBox,
 		)
 		self.keepMouseCenteredCheckBox.SetValue(magnifierConfig.shouldKeepMouseCentered())
@@ -6046,6 +6082,7 @@ class MagnifierPanel(SettingsPanel):
 		selectedModeIdx = self.defaultFullscreenModeList.GetSelection()
 		magnifierConfig.setDefaultFullscreenMode(list(FullScreenMode)[selectedModeIdx])
 
+		config.conf["magnifier"]["isTrueCentered"] = self.trueCenterCheckBox.GetValue()
 		config.conf["magnifier"]["keepMouseCentered"] = self.keepMouseCenteredCheckBox.GetValue()
 
 
@@ -6072,11 +6109,16 @@ class PrivacyAndSecuritySettingsPanel(SettingsPanel):
 				label=_("Make screen black (immediate effect)"),
 			),
 		)
-		self._screenCurtainEnabledCheckbox.SetValue(
-			screenCurtain.screenCurtain is not None and screenCurtain.screenCurtain.enabled,
-		)
+		isScreenCurtainAvailable = screenCurtain.screenCurtain is not None
+		if isScreenCurtainAvailable:
+			self._cachedScreenCurtainConfigEnabled = screenCurtain.screenCurtain.settings["enabled"]
+			self._cachedScreenCurtainEnabled = screenCurtain.screenCurtain.enabled
+		else:
+			self._cachedScreenCurtainConfigEnabled = self._screenCurtainConfig["enabled"]
+			self._cachedScreenCurtainEnabled = False
+		self._screenCurtainEnabledCheckbox.SetValue(self._cachedScreenCurtainEnabled)
 		self._screenCurtainEnabledCheckbox.Bind(wx.EVT_CHECKBOX, self._ensureScreenCurtainEnableState)
-		self._screenCurtainEnabledCheckbox.Enable(screenCurtain.screenCurtain is not None)
+		self._screenCurtainEnabledCheckbox.Enable(isScreenCurtainAvailable)
 		self.bindHelpEvent("ScreenCurtainEnable", self._screenCurtainEnabledCheckbox)
 
 		self._screenCurtainWarnOnLoadCheckbox = screenCurtainGroup.addItem(
@@ -6137,6 +6179,19 @@ class PrivacyAndSecuritySettingsPanel(SettingsPanel):
 			self._allowUsageStatsCheckBox.Value = False
 			self._allowUsageStatsCheckBox.Disable()
 
+	def onDiscard(self):
+		# Restore screen curtain state and setting to the most recently saved baseline,
+		# in case the user enabled or disabled it without saving.
+		if screenCurtain.screenCurtain is not None:
+			if screenCurtain.screenCurtain.enabled != self._cachedScreenCurtainEnabled:
+				if self._cachedScreenCurtainEnabled:
+					screenCurtain.screenCurtain.enable(persist=self._cachedScreenCurtainConfigEnabled)
+				else:
+					screenCurtain.screenCurtain.disable(persist=not self._cachedScreenCurtainConfigEnabled)
+			if screenCurtain.screenCurtain.settings["enabled"] != self._cachedScreenCurtainConfigEnabled:
+				screenCurtain.screenCurtain.settings["enabled"] = self._cachedScreenCurtainConfigEnabled
+		super().onDiscard()
+
 	def onSave(self):
 		# We intentionally don't save whether the screen curtain is enabled here,
 		# so we don't unintentionally persist a temporary screen curtain to config.
@@ -6154,6 +6209,10 @@ class PrivacyAndSecuritySettingsPanel(SettingsPanel):
 		if updateCheck:
 			config.conf["update"]["allowUsageStats"] = self._allowUsageStatsCheckBox.IsChecked()
 			# updateCheck queries this value whenever checking for updates, so there's no need to restart it
+
+		if screenCurtain.screenCurtain is not None:
+			self._cachedScreenCurtainConfigEnabled = screenCurtain.screenCurtain.settings["enabled"]
+			self._cachedScreenCurtainEnabled = screenCurtain.screenCurtain.enabled
 
 	def _ocrActive(self) -> bool:
 		"""

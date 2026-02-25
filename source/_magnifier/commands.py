@@ -15,6 +15,7 @@ from .config import (
 	getDefaultZoomLevelString,
 	getDefaultFilter,
 	getDefaultFullscreenMode,
+	ZoomLevel,
 )
 from .magnifier import Magnifier
 from .fullscreenMagnifier import FullScreenMagnifier
@@ -125,26 +126,10 @@ def zoom(direction: Direction) -> None:
 	magnifier: Magnifier = getMagnifier()
 	if magnifierIsActiveVerify(magnifier, action):
 		magnifier._zoom(direction)
-		zoomName = (
-			pgettext(
-				"magnifier",
-				# Translators: Short name for zooming in, used in messages.
-				"in",
-			)
-			if direction == Direction.IN
-			else pgettext(
-				"magnifier",
-				# Translators: Short name for zooming out, used in messages.
-				"out",
-			)
-		)
-
 		ui.message(
-			pgettext(
-				"magnifier",
-				# Translators: Message announced when zooming in or out with {zoomName} being the zoom direction.
-				"Zoomed {zoomName}",
-			).format(zoomName=zoomName),
+			ZoomLevel.ZOOM_MESSAGE.format(
+				zoomLevel=f"{magnifier.zoomLevel:.1f}",
+			),
 		)
 
 
