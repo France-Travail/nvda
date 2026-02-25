@@ -68,10 +68,7 @@ class TestFixedMagnifier(unittest.TestCase):
 
 				self.magnifier._doUpdate()
 
-				mock_getParams.assert_called_once_with(
-					self.magnifier._currentCoordinates,
-					self.magnifier._windowParameters.windowSize,
-				)
+				mock_getParams.assert_called_once_with(self.magnifier._currentCoordinates)
 				mock_setContent.assert_called_once_with(mock_params, self.magnifier.zoomLevel)
 
 	def test_stopMagnifier(self):

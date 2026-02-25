@@ -113,6 +113,24 @@ def setDefaultFilter(filter: Filter) -> None:
 	config.conf["magnifier"]["defaultFilter"] = filter.value
 
 
+def isTrueCentered() -> bool:
+	"""
+	Check if true centered mode is enabled in config.
+
+	:return: True if true centered mode is enabled, False otherwise.
+	"""
+	return config.conf["magnifier"]["isTrueCentered"]
+
+
+def shouldKeepMouseCentered() -> bool:
+	"""
+	Check if mouse pointer should be kept centered in magnifier view.
+
+	:return: True if mouse should be kept centered, False otherwise.
+	"""
+	return config.conf["magnifier"]["keepMouseCentered"]
+
+
 def getDefaultFullscreenMode() -> FullScreenMode:
 	"""
 	Get default full-screen mode from config.
@@ -183,12 +201,3 @@ def setDefaultFixedWindowPosition(position: FixedWindowPosition) -> None:
 	:param position: The magnifier window position to set.
 	"""
 	config.conf["magnifier"]["defaultFixedWindowPosition"] = position.value
-
-
-def shouldKeepMouseCentered() -> bool:
-	"""
-	Check if mouse pointer should be kept centered in magnifier view.
-
-	:return: True if mouse should be kept centered, False otherwise.
-	"""
-	return config.conf["magnifier"]["keepMouseCentered"]

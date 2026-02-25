@@ -1576,8 +1576,10 @@ The magnfier can be used in multiple modes, each designed to suit different user
 
 The Fullscreen magnifier offers three different modes for focus and determining which part of the screen to magnify:
 
-* **Center**: The magnified area is always centered on the current focus position.
-This mode keeps the focused element at the center of the screen at all times.
+* **Center**: The magnified area is centered on the current focus position.
+This mode keeps the focused element at the center of the screen and clamps to the screen edge.
+To disable clamping, activate [true center mode in the Magnifier settings](#MagnifierUseTrueCenter).
+
 * **Border**: The magnified area only moves when the focus approaches the edge of the visible area.
 This mode provides a more stable view, only adjusting when necessary.
 * **Relative**: The magnified area maintains the relative position of the focus within the screen.
@@ -2827,6 +2829,18 @@ The available options are:
 | Normal | No color modification is applied. |
 | Grayscale | Converts all colors to shades of gray, which can help reduce eye strain and improve contrast. |
 | Inverted | Inverts all colors on the screen, which can be helpful for users who prefer light text on dark backgrounds or have photophobia. |
+
+##### Use true center {#MagnifierUseTrueCenter}
+
+This checkbox controls whether the magnifier should always keep the focus centered on the screen, or if it should allow the focus to move towards the edges of the screen before moving the magnified area.
+When enabled, the magnifier will always keep the focus centered on the screen, which can be helpful for users who prefer a consistent position of the focus within the magnified view.
+
+This option is disabled by default.
+
+| . {.hideHeaderRow} |.|
+|---|---|
+|Options |Disabled, Enabled|
+|Default |Disabled|
 
 ##### Default fullscreen magnifier focus mode {#MagnifierDefaultFocusMode}
 

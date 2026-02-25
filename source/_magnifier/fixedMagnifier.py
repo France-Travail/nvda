@@ -59,7 +59,7 @@ class FixedMagnifier(Magnifier, WindowedMagnifier):
 		)
 
 	def _doUpdate(self):
-		params = self._getMagnifierParameters(self._currentCoordinates, self._windowParameters.windowSize)
+		params = self._getMagnifierParameters(self._currentCoordinates)
 		super()._setContent(params, self.zoomLevel)
 
 	def _stopMagnifier(self) -> None:
