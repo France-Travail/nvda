@@ -135,7 +135,7 @@ def zoom(direction: Direction) -> None:
 
 def pan(action: MagnifierAction) -> None:
 	"""
-	Generic pan function that handles all pan actions.
+	Handles panning the magnifier up/down/left/right and going to each edge.
 
 	:param action: The pan action to perform
 	"""
