@@ -184,7 +184,6 @@ class TestMagnifier(_TestMagnifier):
 		self.magnifier._doUpdate = MagicMock()
 		self.magnifier._isActive = True
 		self.magnifier._panStep = 10  # 10% of screen width
-		self.magnifier.setPanMarginBorder()
 		centerX = self.screenWidth // 2
 		centerY = self.screenHeight // 2
 		self.magnifier._currentCoordinates = Coordinates(centerX, centerY)
@@ -206,10 +205,12 @@ class TestMagnifier(_TestMagnifier):
 		:param action: The pan action to test
 		:param axis: 'x' or 'y'
 		:param direction: -1 for left/up, +1 for right/down
-		:param edgeAttr: The panMargin attribute name ('left', 'right', 'top', 'bottom')
+		:param edgeAttr: The screen limit attribute name ('left', 'right', 'top', 'bottom')
 		"""
 		centerX, centerY, expectedPanPixels = self._setupPanTest()
-		edgeValue = getattr(self.magnifier._panMargin, edgeAttr)
+		minX, minY, maxX, maxY = self.magnifier._getScreenLimits()
+		edgeMap = {"left": minX, "right": maxX, "top": minY, "bottom": maxY}
+		edgeValue = edgeMap[edgeAttr]
 		centerValue = centerX if axis == "x" else centerY
 
 		with patch("_magnifier.magnifier.winUser.setCursorPos"):
@@ -248,10 +249,12 @@ class TestMagnifier(_TestMagnifier):
 
 		:param action: The pan to edge action to test
 		:param axis: 'x' or 'y'
-		:param edgeAttr: The panMargin attribute name ('left', 'right', 'top', 'bottom')
+		:param edgeAttr: The screen limit attribute name ('left', 'right', 'top', 'bottom')
 		"""
 		_ = self._setupPanTest()
-		edgeValue = getattr(self.magnifier._panMargin, edgeAttr)
+		minX, minY, maxX, maxY = self.magnifier._getScreenLimits()
+		edgeMap = {"left": minX, "right": maxX, "top": minY, "bottom": maxY}
+		edgeValue = edgeMap[edgeAttr]
 
 		with patch("_magnifier.magnifier.winUser.setCursorPos"):
 			# Test jump to edge - movement succeeds (moves to edge)
