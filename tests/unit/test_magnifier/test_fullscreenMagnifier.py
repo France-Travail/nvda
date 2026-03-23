@@ -217,14 +217,13 @@ class TestMagnifierEndToEnd(_TestMagnifier):
 		magnifier = FullScreenMagnifier()
 		magnifier._consecutiveErrors = 3
 		magnifier._startTimer = MagicMock()
-		magnifier._applyFilter = MagicMock()
 
 		with patch("_magnifier.fullscreenMagnifier.magnification") as mock_mag:
 			magnifier._attemptRecovery()
 
 			mock_mag.MagUninitialize.assert_called_once()
 			mock_mag.MagInitialize.assert_called_once()
-			magnifier._applyFilter.assert_called_once()
+			mock_mag.MagSetFullscreenColorEffect.assert_called_once()
 			self.assertEqual(magnifier._consecutiveErrors, 0)
 			magnifier._startTimer.assert_called_once_with(magnifier._updateMagnifier)
 

@@ -17,6 +17,7 @@ from .utils.filterHandler import FilterMatrix
 from .utils.spotlightManager import SpotlightManager
 from .utils.types import Filter, Coordinates, FullScreenMode, FocusType
 from .config import getDefaultFullscreenMode, shouldKeepMouseCentered
+from .utils.errorHandling import trackNativeMagnifierErrors
 
 
 class FullScreenMagnifier(Magnifier):
@@ -59,16 +60,20 @@ class FullScreenMagnifier(Magnifier):
 			f"Starting magnifier with zoom level {self.zoomLevel} and filter {self.filterType} and full-screen mode {self._fullscreenMode}",
 		)
 		# Initialize Magnification API if not already initialized
-		try:
-			magnification.MagInitialize()
-			log.debug("Magnification API initialized")
-		except Exception as e:
-			# Already initialized or failed - continue anyway
-			log.debug(f"MagInitialize result: {e}")
+		self._initializeNativeMagnification()
 
 		if self._isActive:
 			self._applyFilter()
 		self._startTimer(self._updateMagnifier)
+
+	@trackNativeMagnifierErrors("MagInitialize", swallow=True)
+	def _initializeNativeMagnification(self) -> None:
+		"""
+		Initialize the Magnification API.
+		If already initialized or on failure, continues anyway.
+		"""
+		magnification.MagInitialize()
+		log.debug("Magnification API initialized")
 
 	def _doUpdate(self):
 		"""
@@ -81,10 +86,7 @@ class FullScreenMagnifier(Magnifier):
 
 		if self._focusManager.getLastFocusType() == FocusType.NAVIGATOR:
 			if shouldKeepMouseCentered():
-				try:
-					self.moveMouseToScreen()
-				except Exception:
-					log.debug("Failed to move mouse to screen center", exc_info=True)
+				self.moveMouseToScreen()
 		self._fullscreenMagnifier(coordinates)
 
 	def _stopMagnifier(self) -> None:
@@ -92,66 +94,98 @@ class FullScreenMagnifier(Magnifier):
 		Stop the Full-screen magnifier using windows DLL
 		"""
 		super()._stopMagnifier()
-		try:
-			# Reset fullscreen magnifier: 1.0 zoom, 0,0 position
-			magnification.MagSetFullscreenTransform(1.0, 0, 0)
-			# Reset color effect to normal (identity matrix)
-			magnification.MagSetFullscreenColorEffect(FilterMatrix.NORMAL.value)
-		except Exception as e:
-			log.debug(f"Error resetting magnification: {e}")
+		self._resetMagnification()
+		self._uninitializeNativeMagnification()
 
-		# Uninitialize Magnification API
-		try:
-			magnification.MagUninitialize()
-			log.debug("Magnification API uninitialized")
-		except Exception as e:
-			log.debug(f"MagUninitialize result: {e}")
+	@trackNativeMagnifierErrors("MagSetFullscreenTransform + MagSetFullscreenColorEffect", swallow=True)
+	def _resetMagnification(self) -> None:
+		"""
+		Reset fullscreen magnifier to neutral state:
+		- Zoom: 1.0 (no magnification)
+		- Position: 0,0
+		- Color effect: normal (identity matrix)
+		"""
+		magnification.MagSetFullscreenTransform(1.0, 0, 0)
+		magnification.MagSetFullscreenColorEffect(FilterMatrix.NORMAL.value)
+		log.debug("Magnification reset to neutral state")
+
+	@trackNativeMagnifierErrors("MagUninitialize", swallow=True)
+	def _uninitializeNativeMagnification(self) -> None:
+		"""
+		Uninitialize the Magnification API.
+		If already uninitialized or on failure, continues anyway.
+		"""
+		magnification.MagUninitialize()
+		log.debug("Magnification API uninitialized")
 
 	def _attemptRecovery(self) -> None:
 		"""
 		Attempt to recover from repeated Magnification API errors by
 		reinitializing the API. If recovery fails, the magnifier is stopped.
+
+		Each step (uninitialize, initialize, apply filter, restart timer) is
+		controlled independently. If any critical step fails, recovery is aborted.
 		"""
 		log.info("Attempting full-screen magnifier recovery via API reinitialization")
-		try:
-			magnification.MagUninitialize()
-		except Exception:
-			log.debug("MagUninitialize during recovery failed (may already be uninitialized)", exc_info=True)
+
+		# Step 1: Uninitialize (best effort, may already be uninitialized)
+		self._uninitializeNativeMagnification()
+
+		# Step 2: Initialize (critical - raises on failure)
 		try:
 			magnification.MagInitialize()
-			self._applyFilter()
-			self._consecutiveErrors = 0
-			log.info("Full-screen magnifier recovery succeeded")
-			self._startTimer(self._updateMagnifier)
-		except Exception:
-			log.error("Full-screen magnifier recovery failed, stopping magnifier", exc_info=True)
-			self._consecutiveErrors = 0
-			self._stopMagnifier()
-			ui.message(
-				pgettext(
-					"magnifier",
-					# Translators: Message announced when the magnifier stops due to an unrecoverable error.
-					"Magnifier stopped due to an error. Please restart it.",
-				),
-			)
+			log.debug("Magnification API initialized during recovery")
+		except OSError:
+			log.error("MagInitialize during recovery failed, aborting recovery", exc_info=True)
+			self._conductRecoveryFailure()
+			return
 
+		# Step 3: Apply filter (critical - raises on failure)
+		try:
+			magnification.MagSetFullscreenColorEffect(self._getFilterMatrix().value)
+			log.debug("Filter applied during recovery")
+		except OSError:
+			log.error("Failed to apply filter during recovery, aborting recovery", exc_info=True)
+			self._conductRecoveryFailure()
+			return
+
+		# All steps succeeded
+		self._consecutiveErrors = 0
+		log.info("Full-screen magnifier recovery succeeded")
+		self._startTimer(self._updateMagnifier)
+
+	def _conductRecoveryFailure(self) -> None:
+		"""
+		Handle unrecoverable magnifier error: stop magnifier and notify user.
+		"""
+		self._consecutiveErrors = 0
+		self._stopMagnifier()
+		ui.message(
+			pgettext(
+				"magnifier",
+				# Translators: Message announced when the magnifier stops due to an unrecoverable error.
+				"Magnifier stopped due to an error. Please restart it.",
+			),
+		)
+
+	def _getFilterMatrix(self) -> FilterMatrix:
+		"""Return the FilterMatrix corresponding to the current filter type."""
+		match self.filterType:
+			case Filter.NORMAL:
+				return FilterMatrix.NORMAL
+			case Filter.GRAYSCALE:
+				return FilterMatrix.GRAYSCALE
+			case Filter.INVERTED:
+				return FilterMatrix.INVERTED
+
+	@trackNativeMagnifierErrors("MagSetFullscreenColorEffect", swallow=True)
 	def _applyFilter(self) -> None:
 		"""
-		Apply the current color filter to the full-screen magnifier
+		Apply the current color filter to the full-screen magnifier.
+
+		If an OSError occurs (native API failure), it is logged and execution continues.
 		"""
-		try:
-			match self.filterType:
-				case Filter.NORMAL:
-					matrix = FilterMatrix.NORMAL
-				case Filter.GRAYSCALE:
-					matrix = FilterMatrix.GRAYSCALE
-				case Filter.INVERTED:
-					matrix = FilterMatrix.INVERTED
-
-			magnification.MagSetFullscreenColorEffect(matrix.value)
-
-		except Exception as e:
-			log.error(f"Failed to apply filter: {e}")
+		magnification.MagSetFullscreenColorEffect(self._getFilterMatrix().value)
 
 	def _fullscreenMagnifier(self, coordinates: Coordinates) -> None:
 		"""
@@ -207,7 +241,16 @@ class FullScreenMagnifier(Magnifier):
 		)
 		centerX = int(left + (visibleWidth / 2))
 		centerY = int(top + (visibleHeight / 2))
-		winUser.setCursorPos(centerX, centerY)
+		self._setCursorToCenter(centerX, centerY)
+
+	@trackNativeMagnifierErrors("SetPhysicalCursorPos", swallow=True)
+	def _setCursorToCenter(self, x: int, y: int) -> None:
+		"""
+		Set cursor to the specified position.
+		If this fails, it is logged but execution continues.
+		"""
+		winUser.setCursorPos(x, y)
+		log.debug(f"Cursor repositioned to center ({x}, {y})")
 
 	def _borderPos(
 		self,

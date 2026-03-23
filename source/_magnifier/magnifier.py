@@ -9,6 +9,7 @@ Implements the magnifier global class and its basic functionalities.
 """
 
 from typing import Callable
+from comtypes import COMError
 from logHandler import log
 import wx
 import ui
@@ -138,9 +139,9 @@ class Magnifier:
 	def _updateMagnifier(self) -> None:
 		"""
 		Update the magnifier position and content.
-		This method is called repeatedly by the timer. It must always
-		reschedule the timer, even if an error occurs, to avoid freezing
-		the magnifier view.
+		This method is called repeatedly by the timer.
+		On transient errors (below threshold): reschedules itself to keep running.
+		On repeated errors (at threshold): delegates rescheduling to _attemptRecovery.
 		"""
 		if not self._isActive:
 			return
@@ -148,16 +149,30 @@ class Magnifier:
 			self._currentCoordinates = self._focusManager.getCurrentFocusCoordinates()
 			self._doUpdate()
 			self._consecutiveErrors = 0
-		except Exception:
+		except (OSError, COMError):
 			self._consecutiveErrors += 1
-			log.error(
-				f"Error updating magnifier ({self._consecutiveErrors}/{self._MAX_CONSECUTIVE_ERRORS})",
+			if self._consecutiveErrors >= self._MAX_CONSECUTIVE_ERRORS:
+				log.error(
+					f"Error updating magnifier ({self._consecutiveErrors}/{self._MAX_CONSECUTIVE_ERRORS}), attempting recovery",
+					exc_info=True,
+				)
+				try:
+					self._attemptRecovery()
+				except Exception:
+					# Recovery itself failed: reset counter and restart timer directly
+					# to avoid a permanent freeze (recovery is responsible for rescheduling
+					# but may fail before reaching that point).
+					log.error(
+						"Recovery failed unexpectedly, restarting timer to prevent freeze",
+						exc_info=True,
+					)
+					self._consecutiveErrors = 0
+					self._startTimer(self._updateMagnifier)
+				return
+			log.warning(
+				f"Transient error updating magnifier ({self._consecutiveErrors}/{self._MAX_CONSECUTIVE_ERRORS})",
 				exc_info=True,
 			)
-			if self._consecutiveErrors >= self._MAX_CONSECUTIVE_ERRORS:
-				log.error("Too many consecutive magnifier errors, attempting recovery")
-				self._attemptRecovery()
-				return
 		# Always reschedule the timer to keep the magnifier alive
 		self._startTimer(self._updateMagnifier)
 

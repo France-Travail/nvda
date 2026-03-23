@@ -142,7 +142,10 @@ class FocusManager:
 			except Exception:
 				# Focus object location may fail (e.g., object without location)
 				# Fall through to return last valid position
-				pass
+				log.debug(
+					"Failed to get focus object location, falling back to last valid position",
+					exc_info=True,
+				)
 		return self._lastValidSystemFocusPosition
 
 	def _getReviewPosition(self) -> Coordinates | None:
@@ -177,7 +180,7 @@ class FocusManager:
 				return Coordinates(x, y)
 			except Exception:
 				# Navigator object may not have a valid location
-				pass
+				log.debug("Failed to get navigator object location", exc_info=True)
 		return None
 
 	def _getNavigatorObjectPosition(self) -> Coordinates:

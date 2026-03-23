@@ -5,6 +5,7 @@
 
 from _magnifier.magnifier import Magnifier, MagnifierType
 from _magnifier.utils.types import Filter, Direction, Coordinates, MagnifierAction
+from comtypes import COMError
 import unittest
 from winAPI._displayTracking import getPrimaryDisplayOrientation
 from unittest.mock import MagicMock, patch
@@ -174,6 +175,37 @@ class TestMagnifier(_TestMagnifier):
 		# Recovery should be called, timer should NOT be rescheduled directly
 		self.magnifier._attemptRecovery.assert_called_once()
 		self.magnifier._startTimer.assert_not_called()
+
+	def testUpdateMagnifierCatchesCOMError(self):
+		"""COMError from UIA must be caught and the timer rescheduled."""
+		self.magnifier._isActive = True
+		self.magnifier._focusManager.getCurrentFocusCoordinates = MagicMock(
+			return_value=Coordinates(100, 200),
+		)
+		self.magnifier._doUpdate = MagicMock(side_effect=COMError(-2147417848, "RPC_E_DISCONNECTED", None))
+		self.magnifier._startTimer = MagicMock()
+
+		self.magnifier._updateMagnifier()
+
+		self.magnifier._startTimer.assert_called_once_with(self.magnifier._updateMagnifier)
+		self.assertEqual(self.magnifier._consecutiveErrors, 1)
+
+	def testUpdateMagnifierRecoveryFailureSafelyRestartsTimer(self):
+		"""If _attemptRecovery itself raises, the timer must still be restarted to prevent a freeze."""
+		self.magnifier._isActive = True
+		self.magnifier._focusManager.getCurrentFocusCoordinates = MagicMock(
+			return_value=Coordinates(100, 200),
+		)
+		self.magnifier._doUpdate = MagicMock(side_effect=OSError("API failure"))
+		self.magnifier._startTimer = MagicMock()
+		self.magnifier._attemptRecovery = MagicMock(side_effect=RuntimeError("recovery crashed"))
+
+		self.magnifier._consecutiveErrors = Magnifier._MAX_CONSECUTIVE_ERRORS - 1
+		self.magnifier._updateMagnifier()
+
+		# Timer must be restarted by the safety net even though recovery failed
+		self.magnifier._startTimer.assert_called_once_with(self.magnifier._updateMagnifier)
+		self.assertEqual(self.magnifier._consecutiveErrors, 0)
 
 	def testUpdateMagnifierResetsErrorCountOnSuccess(self):
 		"""A successful update after errors resets the consecutive error counter."""
