@@ -9,7 +9,6 @@ Contains the command functions and their logic for keyboard shortcuts.
 """
 
 from typing import Literal
-import config
 import ui
 from . import getMagnifier, initialize, terminate
 from .config import (
@@ -17,6 +16,14 @@ from .config import (
 	getDefaultFilter,
 	getDefaultFullscreenMode,
 	ZoomLevel,
+	getFollowMouse,
+	getFollowSystemFocus,
+	getFollowReviewCursor,
+	getFollowNavigatorObject,
+	setFollowMouse,
+	setFollowSystemFocus,
+	setFollowReviewCursor,
+	setFollowNavigatorObject,
 )
 from .magnifier import Magnifier
 from .fullscreenMagnifier import FullScreenMagnifier
@@ -190,19 +197,17 @@ def toggleFollow(focusType: MagnifierFollowFocusType) -> None:
 	):
 		match focusType:
 			case MagnifierFollowFocusType.MOUSE:
-				state = config.conf["magnifier"]["followMouse"] = not config.conf["magnifier"]["followMouse"]
+				state = not getFollowMouse()
+				setFollowMouse(state)
 			case MagnifierFollowFocusType.SYSTEM_FOCUS:
-				state = config.conf["magnifier"]["followSystemFocus"] = not config.conf["magnifier"][
-					"followSystemFocus"
-				]
+				state = not getFollowSystemFocus()
+				setFollowSystemFocus(state)
 			case MagnifierFollowFocusType.REVIEW:
-				state = config.conf["magnifier"]["followReviewCursor"] = not config.conf["magnifier"][
-					"followReviewCursor"
-				]
+				state = not getFollowReviewCursor()
+				setFollowReviewCursor(state)
 			case MagnifierFollowFocusType.NAVIGATOR_OBJECT:
-				state = config.conf["magnifier"]["followNavigatorObject"] = not config.conf["magnifier"][
-					"followNavigatorObject"
-				]
+				state = not getFollowNavigatorObject()
+				setFollowNavigatorObject(state)
 
 		magnifier._focusManager.updateFollowedFocus()
 

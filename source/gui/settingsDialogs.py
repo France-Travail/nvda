@@ -6077,7 +6077,7 @@ class MagnifierPanel(SettingsPanel):
 			"MagnifierFollowMouse",
 			self.followMouseCheckBox,
 		)
-		self.followMouseCheckBox.SetValue(magnifierConfig.followMouse())
+		self.followMouseCheckBox.SetValue(magnifierConfig.getFollowMouse())
 
 		# FOLLOW SYSTEM FOCUS
 		# Translators: The label for a setting in magnifier settings to select whether the magnifier view should follow the system focus
@@ -6087,7 +6087,7 @@ class MagnifierPanel(SettingsPanel):
 			"MagnifierFollowSystemFocus",
 			self.followSystemFocusCheckBox,
 		)
-		self.followSystemFocusCheckBox.SetValue(magnifierConfig.followSystemFocus())
+		self.followSystemFocusCheckBox.SetValue(magnifierConfig.getFollowSystemFocus())
 
 		# FOLLOW REVIEW
 		# Translators: The label for a setting in magnifier settings to select whether the magnifier view should follow the review cursor
@@ -6097,7 +6097,7 @@ class MagnifierPanel(SettingsPanel):
 			"MagnifierFollowReviewCursor",
 			self.followReviewCursorCheckBox,
 		)
-		self.followReviewCursorCheckBox.SetValue(magnifierConfig.followReviewCursor())
+		self.followReviewCursorCheckBox.SetValue(magnifierConfig.getFollowReviewCursor())
 
 		# FOLLOW NAVIGATOR OBJECT
 		# Translators: The label for a setting in magnifier settings to select whether the magnifier view should follow the navigator object
@@ -6109,7 +6109,7 @@ class MagnifierPanel(SettingsPanel):
 			"MagnifierFollowNavigatorObject",
 			self.followNavigatorObjectCheckBox,
 		)
-		self.followNavigatorObjectCheckBox.SetValue(magnifierConfig.followNavigatorObject())
+		self.followNavigatorObjectCheckBox.SetValue(magnifierConfig.getFollowNavigatorObject())
 
 		# KEEP MOUSE CENTERED
 		# Translators: The label for a checkbox to keep the mouse pointer centered in the magnifier view
@@ -6135,10 +6135,10 @@ class MagnifierPanel(SettingsPanel):
 		magnifierConfig.setDefaultFullscreenMode(list(FullScreenMode)[selectedModeIdx])
 
 		config.conf["magnifier"]["isTrueCentered"] = self.trueCenterCheckBox.GetValue()
-		config.conf["magnifier"]["followMouse"] = self.followMouseCheckBox.GetValue()
-		config.conf["magnifier"]["followSystemFocus"] = self.followSystemFocusCheckBox.GetValue()
-		config.conf["magnifier"]["followReviewCursor"] = self.followReviewCursorCheckBox.GetValue()
-		config.conf["magnifier"]["followNavigatorObject"] = self.followNavigatorObjectCheckBox.GetValue()
+		magnifierConfig.setFollowMouse(self.followMouseCheckBox.GetValue())
+		magnifierConfig.setFollowSystemFocus(self.followSystemFocusCheckBox.GetValue())
+		magnifierConfig.setFollowReviewCursor(self.followReviewCursorCheckBox.GetValue())
+		magnifierConfig.setFollowNavigatorObject(self.followNavigatorObjectCheckBox.GetValue())
 		config.conf["magnifier"]["keepMouseCentered"] = self.keepMouseCenteredCheckBox.GetValue()
 
 

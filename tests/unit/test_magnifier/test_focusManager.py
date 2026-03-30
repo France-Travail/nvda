@@ -286,17 +286,17 @@ class TestFocusManager(unittest.TestCase):
 
 				# Apply per-test setting overrides
 				with (
-					patch("_magnifier.utils.focusManager.followMouse", return_value=param.followMouse),
+					patch("_magnifier.utils.focusManager.getFollowMouse", return_value=param.followMouse),
 					patch(
-						"_magnifier.utils.focusManager.followSystemFocus",
+						"_magnifier.utils.focusManager.getFollowSystemFocus",
 						return_value=param.followSystemFocus,
 					),
 					patch(
-						"_magnifier.utils.focusManager.followReviewCursor",
+						"_magnifier.utils.focusManager.getFollowReviewCursor",
 						return_value=param.followReview,
 					),
 					patch(
-						"_magnifier.utils.focusManager.followNavigatorObject",
+						"_magnifier.utils.focusManager.getFollowNavigatorObject",
 						return_value=param.followNavigatorObject,
 					),
 				):
@@ -335,11 +335,11 @@ class TestFollowSettings(unittest.TestCase):
 		mouseHandler.isLeftMouseButtonLocked = MagicMock(return_value=False)
 
 		with (
-			patch("_magnifier.utils.focusManager.followMouse", return_value=followMouse),
-			patch("_magnifier.utils.focusManager.followSystemFocus", return_value=followSystemFocus),
-			patch("_magnifier.utils.focusManager.followReviewCursor", return_value=followReview),
+			patch("_magnifier.utils.focusManager.getFollowMouse", return_value=followMouse),
+			patch("_magnifier.utils.focusManager.getFollowSystemFocus", return_value=followSystemFocus),
+			patch("_magnifier.utils.focusManager.getFollowReviewCursor", return_value=followReview),
 			patch(
-				"_magnifier.utils.focusManager.followNavigatorObject",
+				"_magnifier.utils.focusManager.getFollowNavigatorObject",
 				return_value=followNavigatorObject,
 			),
 		):
@@ -398,10 +398,10 @@ class TestFollowSettings(unittest.TestCase):
 		mouseHandler.isLeftMouseButtonLocked = MagicMock(return_value=True)
 
 		with (
-			patch("_magnifier.utils.focusManager.followMouse", return_value=True),
-			patch("_magnifier.utils.focusManager.followSystemFocus", return_value=True),
-			patch("_magnifier.utils.focusManager.followReviewCursor", return_value=True),
-			patch("_magnifier.utils.focusManager.followNavigatorObject", return_value=True),
+			patch("_magnifier.utils.focusManager.getFollowMouse", return_value=True),
+			patch("_magnifier.utils.focusManager.getFollowSystemFocus", return_value=True),
+			patch("_magnifier.utils.focusManager.getFollowReviewCursor", return_value=True),
+			patch("_magnifier.utils.focusManager.getFollowNavigatorObject", return_value=True),
 		):
 			coords = self.focusManager.getCurrentFocusCoordinates()
 
@@ -424,10 +424,10 @@ class TestFollowSettings(unittest.TestCase):
 		mouseHandler.isLeftMouseButtonLocked = MagicMock(return_value=False)
 
 		with (
-			patch("_magnifier.utils.focusManager.followMouse", return_value=False),
-			patch("_magnifier.utils.focusManager.followSystemFocus", return_value=True),
-			patch("_magnifier.utils.focusManager.followReviewCursor", return_value=True),
-			patch("_magnifier.utils.focusManager.followNavigatorObject", return_value=True),
+			patch("_magnifier.utils.focusManager.getFollowMouse", return_value=False),
+			patch("_magnifier.utils.focusManager.getFollowSystemFocus", return_value=True),
+			patch("_magnifier.utils.focusManager.getFollowReviewCursor", return_value=True),
+			patch("_magnifier.utils.focusManager.getFollowNavigatorObject", return_value=True),
 		):
 			coords = self.focusManager.getCurrentFocusCoordinates()
 
@@ -449,10 +449,10 @@ class TestFollowSettings(unittest.TestCase):
 		mouseHandler.isLeftMouseButtonLocked = MagicMock(return_value=False)
 
 		with (
-			patch("_magnifier.utils.focusManager.followMouse", return_value=False),
-			patch("_magnifier.utils.focusManager.followSystemFocus", return_value=True),
-			patch("_magnifier.utils.focusManager.followReviewCursor", return_value=True),
-			patch("_magnifier.utils.focusManager.followNavigatorObject", return_value=True),
+			patch("_magnifier.utils.focusManager.getFollowMouse", return_value=False),
+			patch("_magnifier.utils.focusManager.getFollowSystemFocus", return_value=True),
+			patch("_magnifier.utils.focusManager.getFollowReviewCursor", return_value=True),
+			patch("_magnifier.utils.focusManager.getFollowNavigatorObject", return_value=True),
 		):
 			coords = self.focusManager.getCurrentFocusCoordinates()
 
@@ -474,10 +474,10 @@ class TestFollowSettings(unittest.TestCase):
 		mouseHandler.isLeftMouseButtonLocked = MagicMock(return_value=False)
 
 		with (
-			patch("_magnifier.utils.focusManager.followMouse", return_value=False),
-			patch("_magnifier.utils.focusManager.followSystemFocus", return_value=False),
-			patch("_magnifier.utils.focusManager.followReviewCursor", return_value=True),
-			patch("_magnifier.utils.focusManager.followNavigatorObject", return_value=True),
+			patch("_magnifier.utils.focusManager.getFollowMouse", return_value=False),
+			patch("_magnifier.utils.focusManager.getFollowSystemFocus", return_value=False),
+			patch("_magnifier.utils.focusManager.getFollowReviewCursor", return_value=True),
+			patch("_magnifier.utils.focusManager.getFollowNavigatorObject", return_value=True),
 		):
 			coords = self.focusManager.getCurrentFocusCoordinates()
 

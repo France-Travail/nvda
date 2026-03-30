@@ -12,7 +12,7 @@ import api
 import winUser
 import mouseHandler
 from .types import Coordinates, FocusType
-from ..config import followMouse, followReviewCursor, followSystemFocus, followNavigatorObject
+from ..config import getFollowMouse, getFollowReviewCursor, getFollowSystemFocus, getFollowNavigatorObject
 
 
 class FocusManager:
@@ -50,6 +50,12 @@ class FocusManager:
 		navigatorPosition = self._getNavigatorObjectPosition()
 		isClickPressed = mouseHandler.isLeftMouseButtonLocked()
 
+		# Cache settings once — each call reads from config.conf
+		isFollowMouse = getFollowMouse()
+		isFollowSystemFocus = getFollowSystemFocus()
+		isFollowReviewCursor = getFollowReviewCursor()
+		isFollowNavigatorObject = getFollowNavigatorObject()
+
 		mouseChanged = self._lastMousePosition != mousePosition
 		systemFocusChanged = self._lastSystemFocusPosition != systemFocusPosition
 		reviewChanged = reviewPosition is not None and self._lastReviewPosition != reviewPosition
@@ -65,13 +71,8 @@ class FocusManager:
 		if navigatorChanged:
 			self._lastNavigatorObjectPosition = navigatorPosition
 
-		# Priority 1: Mouse during drag & drop
-		if isClickPressed and followMouse():
-			self._lastFocusedObject = FocusType.MOUSE
-			return mousePosition
-
-		# Priority 2: Mouse movement
-		if mouseChanged and followMouse():
+		# Priority 1: Mouse — drag (fires even when stationary) or movement
+		if (isClickPressed or mouseChanged) and isFollowMouse:
 			self._lastFocusedObject = FocusType.MOUSE
 			return mousePosition
 
@@ -79,22 +80,22 @@ class FocusManager:
 		# When both the system focus and the navigator object change simultaneously but the
 		# review cursor does not, the navigator object reflects the user's explicit navigation
 		# intent and therefore takes priority over the system focus.
-		if navigatorChanged and systemFocusChanged and not reviewChanged and followNavigatorObject():
+		if navigatorChanged and systemFocusChanged and not reviewChanged and isFollowNavigatorObject:
 			self._lastFocusedObject = FocusType.NAVIGATOR
 			return navigatorPosition
 
-		# Priority 3: System focus (focus object + browse mode cursor)
-		if systemFocusChanged and followSystemFocus():
+		# Priority 2: System focus (focus object + browse mode cursor)
+		if systemFocusChanged and isFollowSystemFocus:
 			self._lastFocusedObject = FocusType.SYSTEM_FOCUS
 			return systemFocusPosition
 
-		# Priority 4: Review cursor
-		if reviewChanged and followReviewCursor() and reviewPosition is not None:
+		# Priority 3: Review cursor
+		if reviewChanged and isFollowReviewCursor and reviewPosition is not None:
 			self._lastFocusedObject = FocusType.REVIEW
 			return reviewPosition
 
-		# Priority 5: Navigator object (NumPad navigation)
-		if navigatorChanged and followNavigatorObject():
+		# Priority 4: Navigator object (NumPad navigation)
+		if navigatorChanged and isFollowNavigatorObject:
 			self._lastFocusedObject = FocusType.NAVIGATOR
 			return navigatorPosition
 
@@ -105,10 +106,10 @@ class FocusManager:
 
 		# All sources in priority order
 		_sources = (
-			(FocusType.MOUSE, followMouse(), mousePosition),
-			(FocusType.SYSTEM_FOCUS, followSystemFocus(), systemFocusPosition),
-			(FocusType.REVIEW, followReviewCursor(), reviewEffectivePosition),
-			(FocusType.NAVIGATOR, followNavigatorObject(), navigatorPosition),
+			(FocusType.MOUSE, isFollowMouse, mousePosition),
+			(FocusType.SYSTEM_FOCUS, isFollowSystemFocus, systemFocusPosition),
+			(FocusType.REVIEW, isFollowReviewCursor, reviewEffectivePosition),
+			(FocusType.NAVIGATOR, isFollowNavigatorObject, navigatorPosition),
 		)
 
 		# Keep current source if still enabled; otherwise mark it as NONE so we switch

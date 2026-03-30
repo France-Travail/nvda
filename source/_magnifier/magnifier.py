@@ -250,7 +250,6 @@ class Magnifier:
 		self._isManualPanning = True
 		self._currentCoordinates = Coordinates(x, y)
 		winUser.setCursorPos(x, y)
-		self._lastMousePosition = Coordinates(x, y)
 		self._doUpdate()
 
 		return (x, y) != (originalX, originalY)

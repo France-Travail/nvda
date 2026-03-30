@@ -78,9 +78,6 @@ def setDefaultZoomLevel(zoomLevel: float) -> None:
 
 	:param zoomLevel: The zoom level to set.
 	"""
-
-	if "magnifier" not in config.conf:
-		config.conf["magnifier"] = {}
 	config.conf["magnifier"]["defaultZoomLevel"] = zoomLevel
 
 
@@ -99,9 +96,6 @@ def setDefaultPanStep(panStep: int) -> None:
 
 	:param panStep: The pan value to set.
 	"""
-
-	if "magnifier" not in config.conf:
-		config.conf["magnifier"] = {}
 	config.conf["magnifier"]["defaultPanStep"] = panStep
 
 
@@ -123,7 +117,16 @@ def setDefaultFilter(filter: Filter) -> None:
 	config.conf["magnifier"]["defaultFilter"] = filter.value
 
 
-def followMouse() -> bool:
+def setFollowMouse(value: bool) -> None:
+	"""
+	Set whether the magnifier should follow the mouse pointer.
+
+	:param value: True to follow mouse, False otherwise.
+	"""
+	config.conf["magnifier"]["followMouse"] = value
+
+
+def getFollowMouse() -> bool:
 	"""
 	Check if magnifier should follow mouse pointer.
 
@@ -132,7 +135,16 @@ def followMouse() -> bool:
 	return config.conf["magnifier"]["followMouse"]
 
 
-def followSystemFocus() -> bool:
+def setFollowSystemFocus(value: bool) -> None:
+	"""
+	Set whether the magnifier should follow system focus.
+
+	:param value: True to follow system focus, False otherwise.
+	"""
+	config.conf["magnifier"]["followSystemFocus"] = value
+
+
+def getFollowSystemFocus() -> bool:
 	"""
 	Check if magnifier should follow system focus.
 
@@ -141,7 +153,16 @@ def followSystemFocus() -> bool:
 	return config.conf["magnifier"]["followSystemFocus"]
 
 
-def followReviewCursor() -> bool:
+def setFollowReviewCursor(value: bool) -> None:
+	"""
+	Set whether the magnifier should follow the review cursor.
+
+	:param value: True to follow review cursor, False otherwise.
+	"""
+	config.conf["magnifier"]["followReviewCursor"] = value
+
+
+def getFollowReviewCursor() -> bool:
 	"""
 	Check if magnifier should follow review cursor.
 
@@ -150,7 +171,15 @@ def followReviewCursor() -> bool:
 	return config.conf["magnifier"]["followReviewCursor"]
 
 
-def followNavigatorObject() -> bool:
+def setFollowNavigatorObject(value: bool) -> None:
+	"""
+	Set whether the magnifier should follow the navigator object.
+	:param value: True to follow navigator object, False otherwise.
+	"""
+	config.conf["magnifier"]["followNavigatorObject"] = value
+
+
+def getFollowNavigatorObject() -> bool:
 	"""
 	Check if magnifier should follow navigator object.
 
