@@ -35,7 +35,10 @@ class FocusManager:
 	def getCurrentFocusCoordinates(self) -> Coordinates:
 		"""
 		Get the current focus coordinates based on priority.
-		Priority: Mouse (drag) > Mouse > System Focus > Review > Navigator Object
+		Priority: Mouse (drag) > Mouse > System Focus > Review > Navigator Object.
+		Special case: when both the system focus and navigator object change simultaneously
+		but the review cursor does not (e.g. table cell navigation via numpad), the navigator
+		object takes priority over system focus.
 
 		Each source is only considered when its corresponding setting is enabled.
 
@@ -71,6 +74,14 @@ class FocusManager:
 		if mouseChanged and followMouse():
 			self._lastFocusedObject = FocusType.MOUSE
 			return mousePosition
+
+		# Special case: table cell navigation (numpad).
+		# When both the system focus and the navigator object change simultaneously but the
+		# review cursor does not, the navigator object reflects the user's explicit navigation
+		# intent and therefore takes priority over the system focus.
+		if navigatorChanged and systemFocusChanged and not reviewChanged and followNavigatorObject():
+			self._lastFocusedObject = FocusType.NAVIGATOR
+			return navigatorPosition
 
 		# Priority 3: System focus (focus object + browse mode cursor)
 		if systemFocusChanged and followSystemFocus():
