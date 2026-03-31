@@ -13,6 +13,8 @@ import winUser
 import mouseHandler
 import time
 import locationHelper
+import textInfos
+from textInfos.offsets import OffsetsTextInfo
 from .types import Coordinates, FocusType
 
 
@@ -174,7 +176,7 @@ class FocusManager:
 				pass
 		return None
 
-	def _getPointAtStart(self, textInfo) -> locationHelper.Point:
+	def _getPointAtStart(self, textInfo: textInfos.TextInfo) -> locationHelper.Point:
 		"""
 		Get a point for the start of a text range with a local end-of-text fallback.
 
@@ -184,28 +186,23 @@ class FocusManager:
 		"""
 		try:
 			return textInfo.pointAtStart
-		except (NotImplementedError, LookupError, AttributeError):
-			pass
+		except (NotImplementedError, LookupError, AttributeError) as e:
+			originalExc = e
 
 		# Only apply the fallback for TextInfos exposing the offset-based internals
 		# we need. Otherwise, preserve the original failure.
-		if not (
-			getattr(textInfo, "isCollapsed", False)
-			and getattr(textInfo, "_startOffset", 0) > 0
-			and hasattr(textInfo, "_getBoundingRectFromOffset")
-		):
-			raise LookupError
+		if not (isinstance(textInfo, OffsetsTextInfo) and textInfo.isCollapsed and textInfo._startOffset > 0):
+			raise originalExc
 
 		prevOffset = textInfo._startOffset - 1
 		try:
 			return textInfo._getBoundingRectFromOffset(prevOffset).topRight
 		except (NotImplementedError, LookupError, AttributeError):
-			if hasattr(textInfo, "_getPointFromOffset"):
-				try:
-					return textInfo._getPointFromOffset(prevOffset)
-				except (NotImplementedError, LookupError, AttributeError):
-					pass
-		raise LookupError
+			try:
+				return textInfo._getPointFromOffset(prevOffset)
+			except (NotImplementedError, LookupError, AttributeError):
+				pass
+		raise originalExc
 
 	def _getNavigatorObjectLocation(self) -> Coordinates | None:
 		"""
