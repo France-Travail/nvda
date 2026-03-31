@@ -66,7 +66,7 @@ class FullScreenMagnifier(Magnifier):
 			self._applyFilter()
 		self._startTimer(self._updateMagnifier)
 
-	@trackNativeMagnifierErrors("MagInitialize", swallow=True)
+	@trackNativeMagnifierErrors
 	def _initializeNativeMagnification(self) -> None:
 		"""
 		Initialize the Magnification API.
@@ -97,7 +97,7 @@ class FullScreenMagnifier(Magnifier):
 		self._resetMagnification()
 		self._uninitializeNativeMagnification()
 
-	@trackNativeMagnifierErrors("MagSetFullscreenTransform + MagSetFullscreenColorEffect", swallow=True)
+	@trackNativeMagnifierErrors
 	def _resetMagnification(self) -> None:
 		"""
 		Reset fullscreen magnifier to neutral state:
@@ -109,7 +109,7 @@ class FullScreenMagnifier(Magnifier):
 		magnification.MagSetFullscreenColorEffect(FilterMatrix.NORMAL.value)
 		log.debug("Magnification reset to neutral state")
 
-	@trackNativeMagnifierErrors("MagUninitialize", swallow=True)
+	@trackNativeMagnifierErrors
 	def _uninitializeNativeMagnification(self) -> None:
 		"""
 		Uninitialize the Magnification API.
@@ -178,7 +178,7 @@ class FullScreenMagnifier(Magnifier):
 			case Filter.INVERTED:
 				return FilterMatrix.INVERTED
 
-	@trackNativeMagnifierErrors("MagSetFullscreenColorEffect", swallow=True)
+	@trackNativeMagnifierErrors
 	def _applyFilter(self) -> None:
 		"""
 		Apply the current color filter to the full-screen magnifier.
@@ -243,7 +243,7 @@ class FullScreenMagnifier(Magnifier):
 		centerY = int(top + (visibleHeight / 2))
 		self._setCursorToCenter(centerX, centerY)
 
-	@trackNativeMagnifierErrors("SetPhysicalCursorPos", swallow=True)
+	@trackNativeMagnifierErrors
 	def _setCursorToCenter(self, x: int, y: int) -> None:
 		"""
 		Set cursor to the specified position.
