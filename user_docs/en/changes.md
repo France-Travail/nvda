@@ -16,6 +16,9 @@
 * A new command, assigned to `NVDA+x`, has been introduced to repeat the last information spoken by NVDA; pressing it twice shows it in a browseable message. (#625, @CyrilleB79)
 * Added an unassigned command to toggle keyboard layout. (#19211, @CyrilleB79)
 * Added an unassigned Quick Navigation Command for jumping to next/previous slider in browse mode. (#17005, @hdzrvcc0X74)
+* Added touch based navigation of browse mode elements, allowing touch screen users to move between links, headings, form fields, lists, tables and other quick navigation elements. (#3424, @kefaslungu)
+  * Flick down or up to cycle through element types; flick right or left to navigate between elements of the selected type.
+  * The element types shown when cycling can be configured in the Browse Mode settings panel.
 * Added support for custom speech dictionaries. (#19558, #17468, @LeonarddeR)
   * Dictionaries can be provided in the `speechDicts` folder in an add-on package.
   * Dictionary metadata can be added to an optional `speechDictionaries` section in the add-on manifest.
@@ -40,6 +43,7 @@ The triple-press keyboard shortcut (`NVDA+ctrl+r`) is not affected, as it is int
 * NVDA will start in focus mode by default when using WhatsApp 2.2584.3.0 or newer. (#19655, @josephsl)
 * Product version for File Explorer will reflect actual Windows version including correct build and revision numbers.
 This is more noticeable for Windows releases which are enablement packages on top of an earlier release such as Windows 11 2025 Update based on Windows 11 2024 Update. (#19802, @josephsl)
+* Math navigation commands now support input help, on-demand speech mode, and can be remapped. (#19871, @RyanMcCleary)
 
 ### Bug Fixes
 
@@ -47,6 +51,7 @@ This is more noticeable for Windows releases which are enablement packages on to
 * The "Toggles on and off if the screen layout is preserved while rendering the document content" item in the "Browse mode" category of the Input Gestures dialog now behaves correctly. (#18378)
 * In Microsoft Word with UIA enabled, page changes are now correctly announced when navigating table rows that span multiple pages. (#19386, @akj)
 * Fixed excessive resource usage and highlight flickering when using Visual Highlight. (#17434, @hwf1324)
+* Braille should no longer stop following focus when moving around in the Microsoft Copilot application. (#19646, @Emil-18)
 * The `NVDA+k` command now correctly reports the destination of links containing formatted text, such as bold or italics. (#19428, @Cary-rowen)
 * Capital indicators are now correctly announced when selecting single characters. (#19505, @cary-rowen)
 * Configuration profile triggers now activate when the Add-on Store is open. (#19583, @bramd)
@@ -65,6 +70,8 @@ Please refer to [the developer guide](https://download.nvaccess.org/documentatio
   * cryptography to 46.0.6. (#19877)
 * NVDA libraries built by the build system are now linked with the [/SETCOMPAT](https://learn.microsoft.com/en-us/cpp/build/reference/cetcompat) flag, improving protection against certain malware attacks. (#19435, @LeonarddeR)
 * Subclasses of `browseMode.BrowseModeDocumentTreeInterceptor` that support screen layout being on and off should override the `_toggleScreenLayout` method, rather than implementing `script_toggleScreenLayout` directly. (#19487)
+* A new method has been added to the UIA.UIA class, called `_getUIACacheablePropertyValue_handleCOMErrors`. (#19646, @Emil-18)
+  * This method calls `_getUIACacheablePropertyValue`, and takes an extra argument (`onError`), that specify the value that should be returned if a `COMError` is raised.
 * Clarified NV Access's policy on API breaking changes in the Developer Guide. (#19599)
 * The `scons tests` build target has been removed, as it was misleadingly named.
 It only ran the translation string comment check, which is equivalent to `scons checkPot`.
