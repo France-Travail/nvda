@@ -12,7 +12,7 @@ import api
 import winUser
 import mouseHandler
 from .types import Coordinates, MagnifierFollowFocusType
-from ..config import getFollowMouse, getFollowReviewCursor, getFollowSystemFocus, getFollowNavigatorObject
+from ..config import getFollowState
 
 
 class FocusManager:
@@ -51,10 +51,10 @@ class FocusManager:
 		isClickPressed = mouseHandler.isLeftMouseButtonLocked()
 
 		# Cache settings once — each call reads from config.conf
-		isFollowMouse = getFollowMouse()
-		isFollowSystemFocus = getFollowSystemFocus()
-		isFollowReviewCursor = getFollowReviewCursor()
-		isFollowNavigatorObject = getFollowNavigatorObject()
+		isFollowMouse = getFollowState(MagnifierFollowFocusType.MOUSE)
+		isFollowSystemFocus = getFollowState(MagnifierFollowFocusType.SYSTEM_FOCUS)
+		isFollowReviewCursor = getFollowState(MagnifierFollowFocusType.REVIEW)
+		isFollowNavigatorObject = getFollowState(MagnifierFollowFocusType.NAVIGATOR_OBJECT)
 
 		mouseChanged = self._lastMousePosition != mousePosition
 		systemFocusChanged = self._lastSystemFocusPosition != systemFocusPosition

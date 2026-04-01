@@ -16,14 +16,9 @@ from .config import (
 	getDefaultFilter,
 	getDefaultFullscreenMode,
 	ZoomLevel,
-	getFollowMouse,
-	getFollowSystemFocus,
-	getFollowReviewCursor,
-	getFollowNavigatorObject,
-	setFollowMouse,
-	setFollowSystemFocus,
-	setFollowReviewCursor,
-	setFollowNavigatorObject,
+	getFollowState,
+	setFollowState,
+	toggleAllFollowStates,
 )
 from .magnifier import Magnifier
 from .fullscreenMagnifier import FullScreenMagnifier
@@ -195,19 +190,8 @@ def toggleFollow(focusType: MagnifierFollowFocusType) -> None:
 		magnifier,
 		MagnifierAction.TOGGLE_FOLLOW_SETTINGS,
 	):
-		match focusType:
-			case MagnifierFollowFocusType.MOUSE:
-				state = not getFollowMouse()
-				setFollowMouse(state)
-			case MagnifierFollowFocusType.SYSTEM_FOCUS:
-				state = not getFollowSystemFocus()
-				setFollowSystemFocus(state)
-			case MagnifierFollowFocusType.REVIEW:
-				state = not getFollowReviewCursor()
-				setFollowReviewCursor(state)
-			case MagnifierFollowFocusType.NAVIGATOR_OBJECT:
-				state = not getFollowNavigatorObject()
-				setFollowNavigatorObject(state)
+		state = not getFollowState(focusType)
+		setFollowState(focusType, state)
 
 		magnifier._focusManager.updateFollowedFocus()
 
@@ -231,6 +215,30 @@ def toggleFollow(focusType: MagnifierFollowFocusType) -> None:
 				),
 			),
 		)
+
+
+def toggleAllFollow() -> None:
+	"""Toggle all follow settings at once and update focus immediately"""
+	magnifier: Magnifier = getMagnifier()
+	if magnifierIsActiveVerify(
+		magnifier,
+		MagnifierAction.TOGGLE_FOLLOW_SETTINGS,
+	):
+		isActiveNow = toggleAllFollowStates()
+		magnifier._focusManager.updateFollowedFocus()
+		if not isActiveNow:
+			stateMessage = pgettext(
+				"magnifier",
+				# Translators: State of all follow settings being toggled disabled.
+				"All follow settings disabled",
+			)
+		else:
+			stateMessage = pgettext(
+				"magnifier",
+				# Translators: State of all follow settings being toggled enabled.
+				"All follow settings enabled",
+			)
+		ui.message(stateMessage)
 
 
 def toggleFullscreenMode() -> None:

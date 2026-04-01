@@ -9,7 +9,7 @@ Handles module initialization, configuration and settings interaction.
 """
 
 import config
-from .utils.types import Filter, FullScreenMode
+from .utils.types import Filter, FullScreenMode, MagnifierFollowFocusType
 
 
 class ZoomLevel:
@@ -117,75 +117,71 @@ def setDefaultFilter(filter: Filter) -> None:
 	config.conf["magnifier"]["defaultFilter"] = filter.value
 
 
-def setFollowMouse(value: bool) -> None:
+_FOLLOW_CONFIG_KEYS: dict[MagnifierFollowFocusType, str] = {
+	MagnifierFollowFocusType.MOUSE: "followMouse",
+	MagnifierFollowFocusType.SYSTEM_FOCUS: "followSystemFocus",
+	MagnifierFollowFocusType.REVIEW: "followReviewCursor",
+	MagnifierFollowFocusType.NAVIGATOR_OBJECT: "followNavigatorObject",
+}
+
+_savedFollowStates: dict[MagnifierFollowFocusType, bool] = {}
+
+_allFollowStatesForcedActive = False
+
+
+def _ensureSavedStatesInitialized() -> None:
 	"""
-	Set whether the magnifier should follow the mouse pointer.
-
-	:param value: True to follow mouse, False otherwise.
+	Populate _savedFollowStates from current config if not yet done.
+	Called lazily to avoid reading config.conf at module import time.
 	"""
-	config.conf["magnifier"]["followMouse"] = value
+	if not _savedFollowStates:
+		saveFollowStates()
 
 
-def getFollowMouse() -> bool:
+def getFollowState(focusType: MagnifierFollowFocusType) -> bool:
 	"""
-	Check if magnifier should follow mouse pointer.
+	Get the current follow state for a given focus type.
 
-	:return: True if magnifier should follow mouse, False otherwise.
+	:param focusType: The focus type to query.
+	:return: True if the magnifier follows the given focus type, False otherwise.
 	"""
-	return config.conf["magnifier"]["followMouse"]
+	return config.conf["magnifier"][_FOLLOW_CONFIG_KEYS[focusType]]
 
 
-def setFollowSystemFocus(value: bool) -> None:
+def setFollowState(focusType: MagnifierFollowFocusType, state: bool) -> None:
 	"""
-	Set whether the magnifier should follow system focus.
+	Set the follow state for a given focus type.
 
-	:param value: True to follow system focus, False otherwise.
+	:param focusType: The focus type to update.
+	:param state: True to enable following, False to disable.
 	"""
-	config.conf["magnifier"]["followSystemFocus"] = value
+	config.conf["magnifier"][_FOLLOW_CONFIG_KEYS[focusType]] = state
 
 
-def getFollowSystemFocus() -> bool:
+def saveFollowStates() -> None:
+	"""Save current follow states so they can be restored later."""
+	for focusType in _FOLLOW_CONFIG_KEYS:
+		_savedFollowStates[focusType] = getFollowState(focusType)
+
+
+def toggleAllFollowStates() -> bool:
 	"""
-	Check if magnifier should follow system focus.
+		Toggle all follow states between forced-active and previously saved states.
 
-	:return: True if magnifier should follow system focus, False otherwise.
+	:return: True when all follow states are forced active after the call, False when restored.
 	"""
-	return config.conf["magnifier"]["followSystemFocus"]
-
-
-def setFollowReviewCursor(value: bool) -> None:
-	"""
-	Set whether the magnifier should follow the review cursor.
-
-	:param value: True to follow review cursor, False otherwise.
-	"""
-	config.conf["magnifier"]["followReviewCursor"] = value
-
-
-def getFollowReviewCursor() -> bool:
-	"""
-	Check if magnifier should follow review cursor.
-
-	:return: True if magnifier should follow review cursor, False otherwise.
-	"""
-	return config.conf["magnifier"]["followReviewCursor"]
-
-
-def setFollowNavigatorObject(value: bool) -> None:
-	"""
-	Set whether the magnifier should follow the navigator object.
-	:param value: True to follow navigator object, False otherwise.
-	"""
-	config.conf["magnifier"]["followNavigatorObject"] = value
-
-
-def getFollowNavigatorObject() -> bool:
-	"""
-	Check if magnifier should follow navigator object.
-
-	:return: True if magnifier should follow navigator object, False otherwise.
-	"""
-	return config.conf["magnifier"]["followNavigatorObject"]
+	global _allFollowStatesForcedActive
+	_ensureSavedStatesInitialized()
+	if _allFollowStatesForcedActive:
+		for focusType, state in _savedFollowStates.items():
+			setFollowState(focusType, state)
+		_allFollowStatesForcedActive = False
+	else:
+		saveFollowStates()
+		for focusType in _FOLLOW_CONFIG_KEYS:
+			setFollowState(focusType, True)
+		_allFollowStatesForcedActive = True
+	return _allFollowStatesForcedActive
 
 
 def getDefaultFullscreenMode() -> FullScreenMode:

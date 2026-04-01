@@ -5215,6 +5215,19 @@ class GlobalCommands(ScriptableObject):
 	@script(
 		description=_(
 			# Translators: Describes a command.
+			"Toggle all follow modes for the magnifier",
+		),
+		category=SCRCAT_VISION,
+	)
+	def script_toggleAllFollow(
+		self,
+		gesture: inputCore.InputGesture,
+	) -> None:
+		_magnifier.commands.toggleAllFollow()
+
+	@script(
+		description=_(
+			# Translators: Describes a command.
 			"Toggle focus mode for the full-screen magnifier",
 		),
 		category=SCRCAT_VISION,

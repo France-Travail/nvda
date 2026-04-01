@@ -12,6 +12,22 @@ import mouseHandler
 import winUser
 
 
+def _makeFollowStateSideEffect(
+	followMouse: bool = True,
+	followSystemFocus: bool = True,
+	followReview: bool = True,
+	followNavigatorObject: bool = True,
+):
+	"""Return a side_effect function for patching getFollowState."""
+	states = {
+		MagnifierFollowFocusType.MOUSE: followMouse,
+		MagnifierFollowFocusType.SYSTEM_FOCUS: followSystemFocus,
+		MagnifierFollowFocusType.REVIEW: followReview,
+		MagnifierFollowFocusType.NAVIGATOR_OBJECT: followNavigatorObject,
+	}
+	return states.__getitem__
+
+
 @dataclass(frozen=True)
 class FocusTestParam:
 	"""Parameters for focus coordinate testing."""
@@ -284,21 +300,16 @@ class TestFocusManager(unittest.TestCase):
 				mouseHandler.isLeftMouseButtonLocked = MagicMock(return_value=param.leftPressed)
 				winUser.getCursorPos = MagicMock(return_value=param.mousePos)
 
-				# Apply per-test setting overrides
-				with (
-					patch("_magnifier.utils.focusManager.getFollowMouse", return_value=param.followMouse),
-					patch(
-						"_magnifier.utils.focusManager.getFollowSystemFocus",
-						return_value=param.followSystemFocus,
-					),
-					patch(
-						"_magnifier.utils.focusManager.getFollowReviewCursor",
-						return_value=param.followReview,
-					),
-					patch(
-						"_magnifier.utils.focusManager.getFollowNavigatorObject",
-						return_value=param.followNavigatorObject,
-					),
+				followStateSideEffect = _makeFollowStateSideEffect(
+					followMouse=param.followMouse,
+					followSystemFocus=param.followSystemFocus,
+					followReview=param.followReview,
+					followNavigatorObject=param.followNavigatorObject,
+				)
+
+				with patch(
+					"_magnifier.utils.focusManager.getFollowState",
+					side_effect=followStateSideEffect,
 				):
 					# Execute
 					focusCoordinates = self.focusManager.getCurrentFocusCoordinates()
@@ -334,14 +345,16 @@ class TestFollowSettings(unittest.TestCase):
 		self.focusManager._getNavigatorObjectPosition = MagicMock(return_value=Coordinates(40, 40))
 		mouseHandler.isLeftMouseButtonLocked = MagicMock(return_value=False)
 
-		with (
-			patch("_magnifier.utils.focusManager.getFollowMouse", return_value=followMouse),
-			patch("_magnifier.utils.focusManager.getFollowSystemFocus", return_value=followSystemFocus),
-			patch("_magnifier.utils.focusManager.getFollowReviewCursor", return_value=followReview),
-			patch(
-				"_magnifier.utils.focusManager.getFollowNavigatorObject",
-				return_value=followNavigatorObject,
-			),
+		followStateSideEffect = _makeFollowStateSideEffect(
+			followMouse=followMouse,
+			followSystemFocus=followSystemFocus,
+			followReview=followReview,
+			followNavigatorObject=followNavigatorObject,
+		)
+
+		with patch(
+			"_magnifier.utils.focusManager.getFollowState",
+			side_effect=followStateSideEffect,
 		):
 			return self.focusManager.getCurrentFocusCoordinates()
 
@@ -397,11 +410,16 @@ class TestFollowSettings(unittest.TestCase):
 		self.focusManager._getNavigatorObjectPosition = MagicMock(return_value=Coordinates(40, 40))
 		mouseHandler.isLeftMouseButtonLocked = MagicMock(return_value=True)
 
-		with (
-			patch("_magnifier.utils.focusManager.getFollowMouse", return_value=True),
-			patch("_magnifier.utils.focusManager.getFollowSystemFocus", return_value=True),
-			patch("_magnifier.utils.focusManager.getFollowReviewCursor", return_value=True),
-			patch("_magnifier.utils.focusManager.getFollowNavigatorObject", return_value=True),
+		followStateSideEffect = _makeFollowStateSideEffect(
+			followMouse=True,
+			followSystemFocus=True,
+			followReview=True,
+			followNavigatorObject=True,
+		)
+
+		with patch(
+			"_magnifier.utils.focusManager.getFollowState",
+			side_effect=followStateSideEffect,
 		):
 			coords = self.focusManager.getCurrentFocusCoordinates()
 
@@ -423,11 +441,16 @@ class TestFollowSettings(unittest.TestCase):
 		self.focusManager._getNavigatorObjectPosition = MagicMock(return_value=Coordinates(40, 40))
 		mouseHandler.isLeftMouseButtonLocked = MagicMock(return_value=False)
 
-		with (
-			patch("_magnifier.utils.focusManager.getFollowMouse", return_value=False),
-			patch("_magnifier.utils.focusManager.getFollowSystemFocus", return_value=True),
-			patch("_magnifier.utils.focusManager.getFollowReviewCursor", return_value=True),
-			patch("_magnifier.utils.focusManager.getFollowNavigatorObject", return_value=True),
+		followStateSideEffect = _makeFollowStateSideEffect(
+			followMouse=False,
+			followSystemFocus=True,
+			followReview=True,
+			followNavigatorObject=True,
+		)
+
+		with patch(
+			"_magnifier.utils.focusManager.getFollowState",
+			side_effect=followStateSideEffect,
 		):
 			coords = self.focusManager.getCurrentFocusCoordinates()
 
@@ -448,11 +471,16 @@ class TestFollowSettings(unittest.TestCase):
 		self.focusManager._getNavigatorObjectPosition = MagicMock(return_value=Coordinates(40, 40))
 		mouseHandler.isLeftMouseButtonLocked = MagicMock(return_value=False)
 
-		with (
-			patch("_magnifier.utils.focusManager.getFollowMouse", return_value=False),
-			patch("_magnifier.utils.focusManager.getFollowSystemFocus", return_value=True),
-			patch("_magnifier.utils.focusManager.getFollowReviewCursor", return_value=True),
-			patch("_magnifier.utils.focusManager.getFollowNavigatorObject", return_value=True),
+		followStateSideEffect = _makeFollowStateSideEffect(
+			followMouse=False,
+			followSystemFocus=True,
+			followReview=True,
+			followNavigatorObject=True,
+		)
+
+		with patch(
+			"_magnifier.utils.focusManager.getFollowState",
+			side_effect=followStateSideEffect,
 		):
 			coords = self.focusManager.getCurrentFocusCoordinates()
 
@@ -473,11 +501,16 @@ class TestFollowSettings(unittest.TestCase):
 		self.focusManager._getNavigatorObjectPosition = MagicMock(return_value=Coordinates(40, 40))
 		mouseHandler.isLeftMouseButtonLocked = MagicMock(return_value=False)
 
-		with (
-			patch("_magnifier.utils.focusManager.getFollowMouse", return_value=False),
-			patch("_magnifier.utils.focusManager.getFollowSystemFocus", return_value=False),
-			patch("_magnifier.utils.focusManager.getFollowReviewCursor", return_value=True),
-			patch("_magnifier.utils.focusManager.getFollowNavigatorObject", return_value=True),
+		followStateSideEffect = _makeFollowStateSideEffect(
+			followMouse=False,
+			followSystemFocus=False,
+			followReview=True,
+			followNavigatorObject=True,
+		)
+
+		with patch(
+			"_magnifier.utils.focusManager.getFollowState",
+			side_effect=followStateSideEffect,
 		):
 			coords = self.focusManager.getCurrentFocusCoordinates()
 
