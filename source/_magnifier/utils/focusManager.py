@@ -11,7 +11,8 @@ Handles all focus tracking logic and coordinate calculations.
 import api
 import winUser
 import mouseHandler
-from .types import Coordinates, FocusType
+from .types import FocusType
+import locationHelper
 
 
 class FocusManager:
@@ -23,13 +24,13 @@ class FocusManager:
 	def __init__(self):
 		"""Initialize the focus manager."""
 		self._lastFocusedObject: FocusType | None = None
-		self._lastMousePosition = Coordinates(0, 0)
-		self._lastSystemFocusPosition = Coordinates(0, 0)
-		self._lastNavigatorObjectPosition = Coordinates(0, 0)
-		self._lastValidSystemFocusPosition = Coordinates(0, 0)
-		self._lastValidNavigatorObjectPosition = Coordinates(0, 0)
+		self._lastMousePosition = locationHelper.Point(0, 0)
+		self._lastSystemFocusPosition = locationHelper.Point(0, 0)
+		self._lastNavigatorObjectPosition = locationHelper.Point(0, 0)
+		self._lastValidSystemFocusPosition = locationHelper.Point(0, 0)
+		self._lastValidNavigatorObjectPosition = locationHelper.Point(0, 0)
 
-	def getCurrentFocusCoordinates(self) -> Coordinates:
+	def getCurrentFocusCoordinates(self) -> locationHelper.Point:
 		"""
 		Get the current focus coordinates based on priority.
 		Priority: Mouse > Navigator Object > System Focus
@@ -99,16 +100,16 @@ class FocusManager:
 				# Default to mouse if no previous focus
 				return mousePosition
 
-	def _getMousePosition(self) -> Coordinates:
+	def _getMousePosition(self) -> locationHelper.Point:
 		"""
 		Get the current mouse position.
 
 		:return: The (x, y) coordinates of the mouse
 		"""
 		mousePos = winUser.getCursorPos()
-		return Coordinates(mousePos[0], mousePos[1])
+		return locationHelper.Point(mousePos[0], mousePos[1])
 
-	def _getSystemFocusPosition(self) -> Coordinates:
+	def _getSystemFocusPosition(self) -> locationHelper.Point:
 		"""
 		Get the current system focus position (focus object + browse mode cursor).
 		This includes both the system focus and the browse mode cursor if active.
@@ -119,9 +120,9 @@ class FocusManager:
 			# Get caret position (works for both browse mode and regular focus)
 			caretPosition = api.getCaretPosition()
 			point = caretPosition.pointAtStart
-			coords = Coordinates(point.x, point.y)
+			coords = locationHelper.Point(point.x, point.y)
 			# Store as last valid position if not (0, 0)
-			if coords != Coordinates(0, 0):
+			if coords != locationHelper.Point(0, 0):
 				self._lastValidSystemFocusPosition = coords
 			return coords
 		except (NotImplementedError, LookupError, AttributeError, RuntimeError):
@@ -132,8 +133,8 @@ class FocusManager:
 					left, top, width, height = focusObj.location
 					x = left + (width // 2)
 					y = top + (height // 2)
-					coords = Coordinates(x, y)
-					if coords != Coordinates(0, 0):
+					coords = locationHelper.Point(x, y)
+					if coords != locationHelper.Point(0, 0):
 						self._lastValidSystemFocusPosition = coords
 					return coords
 			except Exception:
@@ -142,7 +143,7 @@ class FocusManager:
 				pass
 		return self._lastValidSystemFocusPosition
 
-	def _getReviewPosition(self) -> Coordinates | None:
+	def _getReviewPosition(self) -> locationHelper.Point | None:
 		"""
 		Get the current review position (review cursor).
 
@@ -152,13 +153,13 @@ class FocusManager:
 		if reviewPosition:
 			try:
 				point = reviewPosition.pointAtStart
-				return Coordinates(point.x, point.y)
+				return locationHelper.Point(point.x, point.y)
 			except (NotImplementedError, LookupError, AttributeError):
 				# Review position may not support pointAtStart
 				pass
 		return None
 
-	def _getNavigatorObjectLocation(self) -> Coordinates | None:
+	def _getNavigatorObjectLocation(self) -> locationHelper.Point | None:
 		"""
 		Get the navigator object location from its bounding rectangle.
 
@@ -170,13 +171,13 @@ class FocusManager:
 				left, top, width, height = navigatorObject.location
 				x = left + (width // 2)
 				y = top + (height // 2)
-				return Coordinates(x, y)
+				return locationHelper.Point(x, y)
 			except Exception:
 				# Navigator object may not have a valid location
 				pass
 		return None
 
-	def _getNavigatorObjectPosition(self) -> Coordinates:
+	def _getNavigatorObjectPosition(self) -> locationHelper.Point:
 		"""
 		Get the navigator object position (NumPad navigation).
 		Tries review position first, then navigator object location.
@@ -185,13 +186,13 @@ class FocusManager:
 		"""
 		# Try review position first
 		position = self._getReviewPosition()
-		if position and position != Coordinates(0, 0):
+		if position and position != locationHelper.Point(0, 0):
 			self._lastValidNavigatorObjectPosition = position
 			return position
 
 		# Fallback: use navigator object location
 		position = self._getNavigatorObjectLocation()
-		if position and position != Coordinates(0, 0):
+		if position and position != locationHelper.Point(0, 0):
 			self._lastValidNavigatorObjectPosition = position
 			return position
 

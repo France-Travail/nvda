@@ -20,7 +20,6 @@ from winAPI._displayTracking import OrientationState, getPrimaryDisplayOrientati
 from .utils.types import (
 	MagnifierParameters,
 	MagnifierAction,
-	Coordinates,
 	MagnifierType,
 	Direction,
 	Filter,
@@ -34,6 +33,7 @@ from .config import (
 	shouldKeepMouseCentered,
 )
 from .utils.focusManager import FocusManager
+import locationHelper
 
 
 class Magnifier:
@@ -48,9 +48,9 @@ class Magnifier:
 		self._panStep: int = getPanStep()
 		self._timer: None | wx.Timer = None
 		self._focusManager = FocusManager()
-		self._lastScreenPosition = Coordinates(0, 0)
-		self._currentCoordinates = Coordinates(0, 0)
-		self._lastFocusCoordinates = Coordinates(0, 0)
+		self._lastScreenPosition = locationHelper.Point(0, 0)
+		self._currentCoordinates = locationHelper.Point(0, 0)
+		self._lastFocusCoordinates = locationHelper.Point(0, 0)
 		self._filterType: Filter = getFilter()
 		self._isManualPanning: bool = False
 		# Register for display changes
@@ -253,7 +253,7 @@ class Magnifier:
 				log.error(f"Unknown pan action: {action}")
 
 		self._isManualPanning = True
-		self._currentCoordinates = Coordinates(x, y)
+		self._currentCoordinates = locationHelper.Point(x, y)
 		self._doUpdate()
 
 		return (x, y) != (originalX, originalY)
@@ -298,7 +298,7 @@ class Magnifier:
 		else:
 			log.debug("no timer to stop")
 
-	def _getMagnifierParameters(self, coordinates: Coordinates) -> MagnifierParameters:
+	def _getMagnifierParameters(self, coordinates: locationHelper.Point) -> MagnifierParameters:
 		"""
 		Compute the top-left corner of the magnifier window centered on (x, y)
 

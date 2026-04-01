@@ -4,11 +4,12 @@
 # For full terms and any additional permissions, see the NVDA license file: https://github.com/nvaccess/nvda/blob/master/copying.txt
 
 from _magnifier.magnifier import Magnifier
-from _magnifier.utils.types import Filter, Direction, Coordinates, MagnifierAction
+from _magnifier.utils.types import Filter, Direction, MagnifierAction
 import unittest
 from winAPI._displayTracking import getPrimaryDisplayOrientation
 from unittest.mock import MagicMock, patch
 import wx
+import locationHelper
 
 
 class _TestMagnifier(unittest.TestCase):
@@ -22,9 +23,14 @@ class _TestMagnifier(unittest.TestCase):
 
 	def setUp(self):
 		"""Setup before each test - mock magnification API to prevent actual screen magnification."""
-		# Mock the Windows Magnification API to prevent affecting the user's screen
-		self.mag_patcher = patch("winBindings.magnification")
-		self.mock_mag = self.mag_patcher.start()
+		# Patch both the source module and the imported alias used by FullScreenMagnifier.
+		# This avoids leaking real Magnification API state across unrelated test suites.
+		self._magPatchers = [
+			patch("winBindings.magnification"),
+			patch("_magnifier.fullscreenMagnifier.magnification"),
+		]
+		self.mock_mag = self._magPatchers[1].start()
+		self._magPatchers[0].start()
 
 		# Configure mocked API methods to return success
 		self.mock_mag.MagInitialize.return_value = True
@@ -34,7 +40,8 @@ class _TestMagnifier(unittest.TestCase):
 
 	def tearDown(self):
 		"""Cleanup after each test."""
-		self.mag_patcher.stop()
+		for magPatcher in reversed(self._magPatchers):
+			magPatcher.stop()
 
 
 class TestMagnifier(_TestMagnifier):
@@ -92,7 +99,7 @@ class TestMagnifier(_TestMagnifier):
 	def testStartMagnifier(self):
 		"""Activating the magnifier."""
 		self.magnifier._focusManager.getCurrentFocusCoordinates = MagicMock(
-			return_value=Coordinates(100, 200),
+			return_value=locationHelper.Point(100, 200),
 		)
 
 		# Test starting from inactive state
@@ -100,7 +107,7 @@ class TestMagnifier(_TestMagnifier):
 		self.magnifier._startMagnifier()
 
 		self.assertTrue(self.magnifier._isActive)
-		self.assertEqual(self.magnifier._currentCoordinates, Coordinates(100, 200))
+		self.assertEqual(self.magnifier._currentCoordinates, locationHelper.Point(100, 200))
 		self.magnifier._focusManager.getCurrentFocusCoordinates.assert_called_once()
 
 		# Test starting when already active (should not call getCurrentFocusCoordinates again)
@@ -113,7 +120,7 @@ class TestMagnifier(_TestMagnifier):
 	def testUpdateMagnifier(self):
 		"""Updating the magnifier's properties."""
 		self.magnifier._focusManager.getCurrentFocusCoordinates = MagicMock(
-			return_value=Coordinates(100, 200),
+			return_value=locationHelper.Point(100, 200),
 		)
 		self.magnifier._doUpdate = MagicMock()
 		self.magnifier._startTimer = MagicMock()
@@ -137,7 +144,7 @@ class TestMagnifier(_TestMagnifier):
 		self.magnifier._startTimer.assert_called_once_with(
 			self.magnifier._updateMagnifier,
 		)
-		self.assertEqual(self.magnifier._currentCoordinates, Coordinates(100, 200))
+		self.assertEqual(self.magnifier._currentCoordinates, locationHelper.Point(100, 200))
 
 	def testDoUpdate(self):
 		"""DoUpdate function raises NotImplementedError."""
@@ -189,7 +196,7 @@ class TestMagnifier(_TestMagnifier):
 		self.magnifier._panStep = 10  # 10% of screen width
 		centerX = self.screenWidth // 2
 		centerY = self.screenHeight // 2
-		self.magnifier._currentCoordinates = Coordinates(centerX, centerY)
+		self.magnifier._currentCoordinates = locationHelper.Point(centerX, centerY)
 		expectedPanPixels = int(
 			(self.screenWidth / self.magnifier.zoomLevel) * 10 / 100,
 		)
@@ -225,12 +232,12 @@ class TestMagnifier(_TestMagnifier):
 
 			# Test reaching edge - movement succeeds on first contact (position changes to edge)
 			if axis == "x":
-				self.magnifier._currentCoordinates = Coordinates(
+				self.magnifier._currentCoordinates = locationHelper.Point(
 					edgeValue - direction * expectedPanPixels,
 					centerY,
 				)
 			else:
-				self.magnifier._currentCoordinates = Coordinates(
+				self.magnifier._currentCoordinates = locationHelper.Point(
 					centerX,
 					edgeValue - direction * expectedPanPixels,
 				)
@@ -342,8 +349,8 @@ class TestMagnifier(_TestMagnifier):
 
 	def testManagePanning(self):
 		"""Manual panning ends when focus coordinates change, and _lastFocusCoordinates is always kept up to date."""
-		focusA = Coordinates(100, 200)
-		focusB = Coordinates(300, 400)
+		focusA = locationHelper.Point(100, 200)
+		focusB = locationHelper.Point(300, 400)
 
 		self.magnifier._focusManager.getCurrentFocusCoordinates = MagicMock(return_value=focusA)
 
@@ -367,7 +374,7 @@ class TestMagnifier(_TestMagnifier):
 
 	def testKeepMouseCentered(self):
 		"""Base _keepMouseCentered moves cursor to _currentCoordinates."""
-		self.magnifier._currentCoordinates = Coordinates(640, 360)
+		self.magnifier._currentCoordinates = locationHelper.Point(640, 360)
 		with patch("_magnifier.magnifier.winUser.setCursorPos") as mockSetCursor:
 			self.magnifier._keepMouseCentered()
 			mockSetCursor.assert_called_once_with(640, 360)
