@@ -88,9 +88,6 @@ class FullScreenMagnifier(Magnifier):
 		# Always save screen position for mode continuity
 		self._lastScreenPosition = coordinates
 
-		if self._focusManager.getLastFocusType() == FocusType.NAVIGATOR:
-			if shouldKeepMouseCentered():
-				self.moveMouseToScreen()
 		self._fullscreenMagnifier(coordinates)
 
 	def _stopMagnifier(self) -> None:
@@ -174,12 +171,11 @@ class FullScreenMagnifier(Magnifier):
 			case FullScreenMode.CENTER:
 				return coordinates
 
-	def moveMouseToScreen(self) -> None:
+	def _keepMouseCentered(self) -> None:
 		"""
-		Move mouse to center of magnified view.
-		Skip if a mouse button is currently pressed to avoid interfering with clicks.
+		Move the mouse to the center of the magnified view.
+		Skips if a mouse button is currently pressed to avoid interfering with clicks.
 		"""
-		# Check if any mouse button is pressed (left, right, or middle)
 		if (
 			winUser.getKeyState(winUser.VK_LBUTTON) < 0
 			or winUser.getKeyState(winUser.VK_RBUTTON) < 0
