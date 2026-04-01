@@ -34,6 +34,7 @@ class FullScreenMagnifier(Magnifier):
 		self._currentCoordinates = Coordinates(0, 0)
 		self._spotlightManager = SpotlightManager(self)
 		self._displaySize = Size(self._displayOrientation.width, self._displayOrientation.height)
+		self._startMagnifier()
 
 	@property
 	def filterType(self) -> Filter:
@@ -292,7 +293,6 @@ class FullScreenMagnifier(Magnifier):
 		Compute the top-left corner of the magnifier window centered on (x, y)
 
 		:param coordinates: The (x, y) coordinates to center the magnifier on
-		:param displaySize: The size of the display area (width, height) - used to calculate capture size
 
 		:return: The size, position and filter of the magnifier window
 		"""
