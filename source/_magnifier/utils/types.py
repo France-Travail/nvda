@@ -120,16 +120,6 @@ class MagnifierType(DisplayStringStrEnum):
 		}
 
 
-class FocusType(Enum):
-	"""Type of focus being tracked by the magnifier"""
-
-	NONE = auto()
-	MOUSE = auto()
-	SYSTEM_FOCUS = auto()
-	REVIEW = auto()
-	NAVIGATOR = auto()
-
-
 class MagnifierPosition(NamedTuple):
 	"""Named tuple representing the position and size of the magnifier window"""
 

@@ -5,7 +5,7 @@
 
 from dataclasses import dataclass
 from _magnifier.utils.focusManager import FocusManager
-from _magnifier.utils.types import Coordinates, FocusType
+from _magnifier.utils.types import Coordinates, MagnifierFollowFocusType
 import unittest
 from unittest.mock import MagicMock, Mock, patch
 import mouseHandler
@@ -21,9 +21,9 @@ class FocusTestParam:
 	mousePos: tuple
 	leftPressed: bool
 	expectedCoords: Coordinates
-	expectedFocus: FocusType
+	expectedFocus: MagnifierFollowFocusType | None
 	description: str = ""
-	lastFocusedObject: FocusType = FocusType.NONE
+	lastFocusedObject: MagnifierFollowFocusType | None = None
 	reviewPos: Coordinates | None = None
 	followMouse: bool = True
 	followSystemFocus: bool = True
@@ -40,7 +40,7 @@ class TestFocusManager(unittest.TestCase):
 
 	def testFocusManagerCreation(self):
 		"""Can we create a FocusManager with initialized values?"""
-		self.assertEqual(self.focusManager._lastFocusedObject, FocusType.NONE)
+		self.assertIsNone(self.focusManager._lastFocusedObject)
 		self.assertIsNone(self.focusManager._lastReviewPosition)
 		self.assertEqual(self.focusManager._lastMousePosition, Coordinates(0, 0))
 		self.assertEqual(self.focusManager._lastSystemFocusPosition, Coordinates(0, 0))
@@ -145,7 +145,7 @@ class TestFocusManager(unittest.TestCase):
 				mousePos=(0, 0),
 				leftPressed=True,
 				expectedCoords=Coordinates(0, 0),
-				expectedFocus=FocusType.MOUSE,
+				expectedFocus=MagnifierFollowFocusType.MOUSE,
 				description="Left click is pressed should return mouse position",
 			),
 			FocusTestParam(
@@ -154,7 +154,7 @@ class TestFocusManager(unittest.TestCase):
 				mousePos=(10, 10),
 				leftPressed=False,
 				expectedCoords=Coordinates(10, 10),
-				expectedFocus=FocusType.MOUSE,
+				expectedFocus=MagnifierFollowFocusType.MOUSE,
 				description="Mouse moving (not dragging)",
 			),
 			FocusTestParam(
@@ -163,7 +163,7 @@ class TestFocusManager(unittest.TestCase):
 				mousePos=(0, 0),
 				leftPressed=False,
 				expectedCoords=Coordinates(15, 15),
-				expectedFocus=FocusType.SYSTEM_FOCUS,
+				expectedFocus=MagnifierFollowFocusType.SYSTEM_FOCUS,
 				description="System focus changed alone (navigator did not move)",
 			),
 			FocusTestParam(
@@ -172,7 +172,7 @@ class TestFocusManager(unittest.TestCase):
 				mousePos=(0, 0),
 				leftPressed=False,
 				expectedCoords=Coordinates(20, 20),
-				expectedFocus=FocusType.NAVIGATOR,
+				expectedFocus=MagnifierFollowFocusType.NAVIGATOR_OBJECT,
 				description="Navigator object changed (NumPad navigation)",
 			),
 			FocusTestParam(
@@ -181,7 +181,7 @@ class TestFocusManager(unittest.TestCase):
 				mousePos=(0, 0),
 				leftPressed=False,
 				expectedCoords=Coordinates(30, 30),
-				expectedFocus=FocusType.NAVIGATOR,
+				expectedFocus=MagnifierFollowFocusType.NAVIGATOR_OBJECT,
 				description="Both system focus and navigator changed (table cell navigation): navigator wins",
 			),
 			FocusTestParam(
@@ -191,7 +191,7 @@ class TestFocusManager(unittest.TestCase):
 				leftPressed=False,
 				reviewPos=Coordinates(30, 30),
 				expectedCoords=Coordinates(30, 30),
-				expectedFocus=FocusType.REVIEW,
+				expectedFocus=MagnifierFollowFocusType.REVIEW,
 				description="Review cursor changed with followReview enabled",
 			),
 			FocusTestParam(
@@ -201,7 +201,7 @@ class TestFocusManager(unittest.TestCase):
 				leftPressed=False,
 				reviewPos=Coordinates(30, 30),
 				expectedCoords=Coordinates(30, 30),
-				expectedFocus=FocusType.REVIEW,
+				expectedFocus=MagnifierFollowFocusType.REVIEW,
 				description="Review has higher priority than navigator",
 			),
 			FocusTestParam(
@@ -212,7 +212,7 @@ class TestFocusManager(unittest.TestCase):
 				reviewPos=Coordinates(30, 30),
 				followReview=False,
 				expectedCoords=Coordinates(20, 20),
-				expectedFocus=FocusType.NAVIGATOR,
+				expectedFocus=MagnifierFollowFocusType.NAVIGATOR_OBJECT,
 				description="Review cursor ignored when followReview=False",
 			),
 			FocusTestParam(
@@ -221,9 +221,9 @@ class TestFocusManager(unittest.TestCase):
 				mousePos=(0, 0),
 				leftPressed=False,
 				expectedCoords=Coordinates(0, 0),
-				expectedFocus=FocusType.MOUSE,
+				expectedFocus=MagnifierFollowFocusType.MOUSE,
 				description="Nothing changed, last was Mouse",
-				lastFocusedObject=FocusType.MOUSE,
+				lastFocusedObject=MagnifierFollowFocusType.MOUSE,
 			),
 			FocusTestParam(
 				navigatorObjectPos=Coordinates(0, 0),
@@ -231,9 +231,9 @@ class TestFocusManager(unittest.TestCase):
 				mousePos=(0, 0),
 				leftPressed=False,
 				expectedCoords=Coordinates(0, 0),
-				expectedFocus=FocusType.NAVIGATOR,
+				expectedFocus=MagnifierFollowFocusType.NAVIGATOR_OBJECT,
 				description="Nothing changed, last was NAVIGATOR",
-				lastFocusedObject=FocusType.NAVIGATOR,
+				lastFocusedObject=MagnifierFollowFocusType.NAVIGATOR_OBJECT,
 			),
 			FocusTestParam(
 				navigatorObjectPos=Coordinates(0, 0),
@@ -242,9 +242,9 @@ class TestFocusManager(unittest.TestCase):
 				leftPressed=False,
 				reviewPos=Coordinates(30, 30),
 				expectedCoords=Coordinates(30, 30),
-				expectedFocus=FocusType.REVIEW,
+				expectedFocus=MagnifierFollowFocusType.REVIEW,
 				description="Nothing changed, last was REVIEW - returns current review position",
-				lastFocusedObject=FocusType.REVIEW,
+				lastFocusedObject=MagnifierFollowFocusType.REVIEW,
 			),
 			FocusTestParam(
 				navigatorObjectPos=Coordinates(10, 10),
@@ -252,7 +252,7 @@ class TestFocusManager(unittest.TestCase):
 				mousePos=(20, 20),
 				leftPressed=False,
 				expectedCoords=Coordinates(20, 20),
-				expectedFocus=FocusType.MOUSE,
+				expectedFocus=MagnifierFollowFocusType.MOUSE,
 				description="Both mouse and navigator object moved (mouse has priority)",
 			),
 			FocusTestParam(
@@ -261,7 +261,7 @@ class TestFocusManager(unittest.TestCase):
 				mousePos=(20, 20),
 				leftPressed=True,
 				expectedCoords=Coordinates(20, 20),
-				expectedFocus=FocusType.MOUSE,
+				expectedFocus=MagnifierFollowFocusType.MOUSE,
 				description="All three moved while dragging (mouse drag has highest priority)",
 			),
 		]
@@ -309,9 +309,9 @@ class TestFocusManager(unittest.TestCase):
 
 	def testGetLastFocusType(self):
 		"""Test getting the last focus type."""
-		self.assertEqual(self.focusManager.getLastFocusType(), FocusType.NONE)
+		self.assertIsNone(self.focusManager.getLastFocusType())
 
-		for focusType in FocusType:
+		for focusType in MagnifierFollowFocusType:
 			self.focusManager._lastFocusedObject = focusType
 			self.assertEqual(self.focusManager.getLastFocusType(), focusType)
 
@@ -354,7 +354,7 @@ class TestFollowSettings(unittest.TestCase):
 			followNavigatorObject=True,
 		)
 		self.assertEqual(coords, Coordinates(20, 20))
-		self.assertEqual(self.focusManager.getLastFocusType(), FocusType.SYSTEM_FOCUS)
+		self.assertEqual(self.focusManager.getLastFocusType(), MagnifierFollowFocusType.SYSTEM_FOCUS)
 
 	def testFollowSystemFocusDisabled(self):
 		"""When followSystemFocus=False, system focus changes are ignored and review wins."""
@@ -365,7 +365,7 @@ class TestFollowSettings(unittest.TestCase):
 			followNavigatorObject=True,
 		)
 		self.assertEqual(coords, Coordinates(30, 30))
-		self.assertEqual(self.focusManager.getLastFocusType(), FocusType.REVIEW)
+		self.assertEqual(self.focusManager.getLastFocusType(), MagnifierFollowFocusType.REVIEW)
 
 	def testFollowReviewDisabled(self):
 		"""When followReview=False, review changes are ignored and navigator wins."""
@@ -376,7 +376,7 @@ class TestFollowSettings(unittest.TestCase):
 			followNavigatorObject=True,
 		)
 		self.assertEqual(coords, Coordinates(40, 40))
-		self.assertEqual(self.focusManager.getLastFocusType(), FocusType.NAVIGATOR)
+		self.assertEqual(self.focusManager.getLastFocusType(), MagnifierFollowFocusType.NAVIGATOR_OBJECT)
 
 	def testAllFollowDisabled(self):
 		"""When all settings are False, no source fires and we fall back to default mouse."""
@@ -406,12 +406,12 @@ class TestFollowSettings(unittest.TestCase):
 			coords = self.focusManager.getCurrentFocusCoordinates()
 
 		self.assertEqual(coords, Coordinates(10, 10))
-		self.assertEqual(self.focusManager.getLastFocusType(), FocusType.MOUSE)
+		self.assertEqual(self.focusManager.getLastFocusType(), MagnifierFollowFocusType.MOUSE)
 
 	def testDisableFollowMouseFallsToSystemFocus(self):
 		"""When followMouse is disabled after mouse was the last focus, should fall back to system focus."""
 		# Simulate: mouse was previously the active focus source
-		self.focusManager._lastFocusedObject = FocusType.MOUSE
+		self.focusManager._lastFocusedObject = MagnifierFollowFocusType.MOUSE
 		# Positions haven't changed from last recorded values (no "change" detected)
 		self.focusManager._lastMousePosition = Coordinates(10, 10)
 		self.focusManager._lastSystemFocusPosition = Coordinates(20, 20)
@@ -432,11 +432,11 @@ class TestFollowSettings(unittest.TestCase):
 			coords = self.focusManager.getCurrentFocusCoordinates()
 
 		self.assertEqual(coords, Coordinates(20, 20))
-		self.assertEqual(self.focusManager.getLastFocusType(), FocusType.SYSTEM_FOCUS)
+		self.assertEqual(self.focusManager.getLastFocusType(), MagnifierFollowFocusType.SYSTEM_FOCUS)
 
 	def testDisableFollowMouseWhileMouseMovingFallsToSystemFocus(self):
 		"""When followMouse is disabled and mouse is still moving, should not follow mouse."""
-		self.focusManager._lastFocusedObject = FocusType.MOUSE
+		self.focusManager._lastFocusedObject = MagnifierFollowFocusType.MOUSE
 		self.focusManager._lastMousePosition = Coordinates(10, 10)
 		self.focusManager._lastSystemFocusPosition = Coordinates(20, 20)
 		self.focusManager._lastNavigatorObjectPosition = Coordinates(40, 40)
@@ -457,11 +457,11 @@ class TestFollowSettings(unittest.TestCase):
 			coords = self.focusManager.getCurrentFocusCoordinates()
 
 		self.assertEqual(coords, Coordinates(20, 20))
-		self.assertEqual(self.focusManager.getLastFocusType(), FocusType.SYSTEM_FOCUS)
+		self.assertEqual(self.focusManager.getLastFocusType(), MagnifierFollowFocusType.SYSTEM_FOCUS)
 
 	def testDisableFollowSystemFocusFallsToReview(self):
 		"""When last focus was system focus and its setting is disabled, should fall to review."""
-		self.focusManager._lastFocusedObject = FocusType.SYSTEM_FOCUS
+		self.focusManager._lastFocusedObject = MagnifierFollowFocusType.SYSTEM_FOCUS
 		self.focusManager._lastMousePosition = Coordinates(10, 10)
 		self.focusManager._lastSystemFocusPosition = Coordinates(20, 20)
 		self.focusManager._lastReviewPosition = Coordinates(30, 30)
@@ -482,4 +482,4 @@ class TestFollowSettings(unittest.TestCase):
 			coords = self.focusManager.getCurrentFocusCoordinates()
 
 		self.assertEqual(coords, Coordinates(30, 30))
-		self.assertEqual(self.focusManager.getLastFocusType(), FocusType.REVIEW)
+		self.assertEqual(self.focusManager.getLastFocusType(), MagnifierFollowFocusType.REVIEW)
