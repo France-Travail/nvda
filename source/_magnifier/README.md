@@ -3,7 +3,7 @@
 This document is for whoever takes over development of NVDA's built-in magnifier.
 It explains how the module is built, why it is built that way, which pitfalls have already been hit, and what is left to do.
 
-The starting point is the magnifier as shipped in NVDA 2026.2.
+It describes the magnifier as shipped in NVDA 2026.2. Work done after that release is out of scope here, so check the code before relying on any detail below.
 
 Throughout this document, native means the Windows Magnification API (`magnification.dll`) reached through `winBindings`. A "native call" is a call into that DLL, and a "native error" is the `OSError` it raises on failure. It never means anything else, such as C++ code in NVDA's own binaries.
 
@@ -14,7 +14,7 @@ Throughout this document, native means the Windows Magnification API (`magnifica
 * The magnifier is built on the **Windows Magnification API** (`magnification.dll`), through the bindings in `source/winBindings/magnification.py`.
 * **Only one view is actually implemented: full-screen** (`FullScreenMagnifier`).
 * The **Fixed**, **Docked** and **Lens** views (`FixedMagnifier`, `DockedMagnifier`, `LensMagnifier`) are **empty shells**. They exist so that view cycling and configuration are already wired up. Section 8 describes the recommended way to build them and what was learned while prototyping the Fixed view.
-* Full-screen features: zoom from 100% to 5000% in steps of 50, three color filters, two tracking modes (center, relative), tracking of four sources (mouse, system focus, review cursor, navigator object), manual panning, animated screen overview ("spotlight"), moving the mouse to the center of the view, automatic error recovery, coexistence with Screen Curtain, touch support.
+* Full-screen features: zoom from 100% to 5000% in steps of 50, three color filters, two tracking modes (center, relative), tracking of four sources (mouse, system focus, review cursor, navigator object), manual panning, animated screen overview ("spotlight"), automatic error recovery, coexistence with Screen Curtain, touch support.
 
 ---
 
@@ -51,7 +51,6 @@ The magnifier is not isolated. Any change to its internal API must be reflected 
 | `source/globalCommands.py` | Declares scripts and gestures. Contains no logic: it delegates to `_magnifier.commands`. |
 | `source/gui/settingsDialogs.py` | `MagnifierPanel`. Writes to config **and** directly to the active instance (`magnifier._panStep`, `magnifier._fullscreenMode`). |
 | `source/screenCurtain/_screenCurtain.py` | Calls `onScreenCurtainEnabled()` / `onScreenCurtainDisabled()` on the instance. |
-| `source/contentRecog/recogUi.py` | Uses `_magnifier.isActive()` to pick Windows Graphics Capture instead of GDI during OCR, so recognition sees the real screen rather than magnified or filtered pixels. |
 | `source/config/configSpec.py` | `[magnifier]` section and the `debugLog.magnifier` key. |
 | `source/config/profileUpgradeSteps.py` | `upgradeConfigFrom_23_to_24`: removes the "true center" key and the `border` tracking mode from older profiles, since both were postponed (section 7.1). |
 | `source/winBindings/magnification.py` | ctypes bindings. Each function has an `errcheck` that raises `OSError` (via `WinError()`) when the API returns `FALSE`. |
@@ -234,8 +233,6 @@ These are the behaviors that cost the most time. They are all handled in the cur
 
 6. **Native errors arrive as `OSError`**, thanks to the bindings' `errcheck`. COM/UIA errors coming from focus tracking arrive as `COMError` (for example `RPC_E_DISCONNECTED` in recent Notepad). The loop catches both.
 
-7. **Switching filters too fast causes flashing.** More than 3 changes per second is a photosensitive seizure risk (WCAG 2.3.1). `_applyFilter` is protected by `@debounceLimiter(PREVENT_THREE_HZ_FLASH_MS)`. Any new fast visual effect must respect the same constraint.
-
 ---
 
 ## 6. Problems encountered and chosen solutions
@@ -264,7 +261,6 @@ Grouped by theme. Each row gives the symptom, the cause and what was done.
 | Disabling a tracking source still moves the view | Automatic fallback to another source | Freeze on the last position, two-step "disable all / restore" toggle |
 | Clicks have no effect in Discord, Teams... in center mode | Transform changed between the press and the processing of the click, button state read late | No movement during a click, state read with `getAsyncKeyState` |
 | Mouse tracking lag at high scale factors | wx timer late because the main thread is saturated | Dedicated mouse hook (section 3.4) |
-| Screen overview breaks the magnifier in relative mode | Missing `int` conversion when returning to the original zoom | Conversion fixed in `SpotlightManager.zoomBack` |
 
 ### Interface and translation
 
