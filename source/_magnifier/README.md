@@ -39,7 +39,7 @@ _magnifier/
     └── errorHandling.py     MagnifierStartError and the trackNativeMagnifierErrors decorator
 ```
 
-Unit tests live in `tests/unit/test_magnifier/`, one test file per source file.
+Unit tests live in `tests/unit/test_magnifier/`, with shared fixtures in `test_magnifier.py` and focused tests for the implemented magnifier, full-screen API, commands, spotlight, mouse hook, and focus manager.
 
 ### Integration points outside the module
 
