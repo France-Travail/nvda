@@ -93,6 +93,8 @@ On each pass:
 3. `_doUpdate()` (implemented by the subclass) applies the transform.
 4. On `OSError` or `COMError`: consecutive error counter. At 3, `_attemptRecovery()`.
 
+Why only these two exception types are caught: they are the two failures that are expected here and that recovery can do something about. `OSError` is what the `winBindings` `errcheck` raises when a Magnification call returns `FALSE`, typically because another process took the API over. `COMError` is what the accessibility layer raises while the `FocusManager` queries the caret or the navigator object, for example `RPC_E_DISCONNECTED` when the application being read goes away. Anything else is a bug in the module: it must reach the log as an unhandled error instead of being counted, retried, and hidden behind a recovery that cannot fix it.
+
 The timer runs on the wx main thread. **All Magnification API calls happen on that thread**, including those triggered by the mouse (see 3.4).
 
 ### 3.3 The coordinate pipeline (full-screen)
