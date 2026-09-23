@@ -20,24 +20,22 @@ Throughout this document, native means the Windows Magnification API (`magnifica
 
 ## 2. Module map
 
-```
-_magnifier/
-├── __init__.py              Entry point: _magnifier singleton, initialize/terminate, start/stop, view factory
-├── magnifier.py             Magnifier base class: lifecycle, update loop, zoom, pan, bounds, errors, Screen Curtain
-├── fullscreenMagnifier.py   FullScreenMagnifier: everything that calls the full-screen Magnification API
-├── fixedMagnifier.py        Empty shell
-├── dockedMagnifier.py       Empty shell
-├── lensMagnifier.py         Empty shell
-├── config.py                Only access point to config.conf["magnifier"] (getters/setters, ZoomLevel, _isDebug)
-├── commands.py              Keyboard command logic (called from globalCommands.py) and spoken messages
-└── utils/
-    ├── types.py             Shared enums and NamedTuples (Coordinates, Size, MagnifiedView, Filter, FullScreenMode...)
-    ├── focusManager.py      Computes the position to track (mouse, focus, review, navigator) and priorities
-    ├── mouseHook.py         WH_MOUSE_LL hook in a dedicated thread
-    ├── spotlightManager.py  Screen overview animation (zoom out, then back)
-    ├── filterHandler.py     5x5 color matrices (MAGCOLOREFFECT) for the filters
-    └── errorHandling.py     MagnifierStartError and the trackNativeMagnifierErrors decorator
-```
+| File | Responsibility |
+| --- | --- |
+| `__init__.py` | Entry point: the `_magnifier` singleton, `initialize`/`terminate`, `start`/`stop`, and the view factory |
+| `magnifier.py` | `Magnifier` base class: lifecycle, update loop, zoom, pan, bounds, errors, Screen Curtain |
+| `fullscreenMagnifier.py` | `FullScreenMagnifier`: everything that calls the full-screen Magnification API |
+| `fixedMagnifier.py` | Empty shell |
+| `dockedMagnifier.py` | Empty shell |
+| `lensMagnifier.py` | Empty shell |
+| `config.py` | The only access point to `config.conf["magnifier"]` (getters and setters, `ZoomLevel`, `_isDebug`) |
+| `commands.py` | Keyboard command logic (called from `globalCommands.py`) and spoken messages |
+| `utils/types.py` | Shared enums and NamedTuples (`Coordinates`, `Size`, `MagnifiedView`, `Filter`, `FullScreenMode`...) |
+| `utils/focusManager.py` | Computes the position to track (mouse, focus, review, navigator) and the priorities between them |
+| `utils/mouseHook.py` | `WH_MOUSE_LL` hook in a dedicated thread |
+| `utils/spotlightManager.py` | Screen overview animation (zoom out, then back) |
+| `utils/filterHandler.py` | 5x5 color matrices (`MAGCOLOREFFECT`) for the filters |
+| `utils/errorHandling.py` | `MagnifierStartError` and the `trackNativeMagnifierErrors` decorator |
 
 Unit tests live in `tests/unit/test_magnifier/`, with shared fixtures in `test_magnifier.py` and focused tests for the implemented magnifier, full-screen API, commands, spotlight, mouse hook, and focus manager.
 
@@ -62,17 +60,17 @@ The magnifier is not isolated. Any change to its internal API must be reflected 
 
 ### 3.1 Lifecycle
 
-```
-core.py ──> _magnifier.initialize()
-              ├── createMagnifier(view read from config)   (single instance: _magnifier)
-              └── if config "enabled": start()
-                     └── _magnifier._startMagnifier()
-                            ├── Magnifier: checks Screen Curtain, _isActive = True, starts the mouse hook
-                            └── FullScreenMagnifier: initializes the native API, applies the filter, starts the timer
+On startup, `core.py` calls `_magnifier.initialize()`, which:
 
-keyboard command / settings panel ──> commands.toggleMagnifier() ──> start() / stop()
-core.py (exit)                    ──> _magnifier.terminate() ──> stop(persist=False)
-```
+1. calls `createMagnifier()` with the view read from config, and stores the result as the single `_magnifier` instance;
+2. calls `start()` when the magnifier is enabled in config, which calls `_startMagnifier()` on that instance.
+
+`_startMagnifier()` runs in two stages, base class first:
+
+1. `Magnifier._startMagnifier()` checks Screen Curtain, sets `_isActive` to `True`, and starts the mouse hook;
+2. `FullScreenMagnifier._startMagnifier()` then initializes the native API, applies the current filter, and starts the timer.
+
+Afterwards, a keyboard command or the settings panel calls `commands.toggleMagnifier()`, which calls `start()` or `stop()`. On exit, `core.py` calls `_magnifier.terminate()`, which calls `stop(persist=False)`.
 
 Rules to follow:
 
@@ -98,21 +96,14 @@ The timer runs on the wx main thread. All Magnification API calls happen on that
 
 ### 3.3 The coordinate pipeline (full-screen)
 
-```
-FocusManager.getCurrentFocusCoordinates()     raw position (top-left corner of the tracked object)
-        │
-        ▼
-Magnifier.currentCoordinates (setter)         _clampCoordinates(): bounds depend on the mode
-        │
-        ▼
-_getCoordinatesForMode()                      CENTER: unchanged / RELATIVE: _relativePos()
-        │
-        ▼
-_getMagnifierParameters()                     top-left corner of the source area + area size
-        │
-        ▼
-MagSetFullscreenTransform(zoom, left, top)    + MagSetInputTransform when UIAccess is available
-```
+Each update turns the position of whatever is being tracked into one call to the native API, in four steps:
+
+1. `FocusManager.getCurrentFocusCoordinates()` returns the raw position, the top-left corner of the tracked object.
+2. The `Magnifier.currentCoordinates` setter clamps it through `_clampCoordinates()`, within bounds that depend on the tracking mode.
+3. `_getCoordinatesForMode()` adjusts it for the mode: center mode leaves it unchanged, relative mode passes it through `_relativePos()`.
+4. `_getMagnifierParameters()` turns it into the top-left corner of the source area, plus the size of that area.
+
+The result is passed to `MagSetFullscreenTransform(zoom, left, top)`, followed by `MagSetInputTransform` when UIAccess is available.
 
 Key points:
 
@@ -220,7 +211,7 @@ These are the behaviors that cost the most time. They are all handled in the cur
 
 1. `MagInitialize()` succeeds even when another process already holds the API (Windows Magnifier running). Only `MagSetFullscreenTransform()` fails afterwards. Hence: `_initializeNativeMagnification()` performs a real first transform call as a probe, and raises if it fails. Recovery reuses the same method; a recovery that only checked `MagInitialize` reported a false success and looped forever.
 
-2. A `MagInitialize` → `MagUninitialize` → `MagInitialize` cycle in the same process leaves a corrupted internal state: the next `MagSetFullscreenTransform` returns `FALSE` with error code 0 (`OSError: [WinError 0]`). Same thing after Screen Curtain has set its black matrix. Current solution: `_clearStaleApiState()` runs a dummy cycle (`MagInitialize`, reset to the neutral filter, `MagUninitialize`) before every real `MagInitialize`.
+2. Calling `MagInitialize`, then `MagUninitialize`, then `MagInitialize` again in the same process leaves a corrupted internal state: the next `MagSetFullscreenTransform` returns `FALSE` with error code 0 (`OSError: [WinError 0]`). Same thing after Screen Curtain has set its black matrix. Current solution: `_clearStaleApiState()` runs a dummy cycle (`MagInitialize`, reset to the neutral filter, `MagUninitialize`) before every real `MagInitialize`.
    Keeping the API initialized for the whole NVDA session and only uninitializing on exit was tried first. It was dropped because it conflicted with Screen Curtain.
 
 3. Screen Curtain uses the same API. If the magnifier calls `MagUninitialize()` while Screen Curtain is active, the screen is exposed: this is a privacy issue. Therefore: the magnifier refuses to start while Screen Curtain is active (`_isBlockedByScreenCurtain`). During NVDA startup it silently defers and restarts once Screen Curtain is disabled. Enabling Screen Curtain stops the magnifier, disabling it restarts the magnifier.
