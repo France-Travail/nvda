@@ -5,6 +5,8 @@ It explains how the module is built, why it is built that way, which pitfalls ha
 
 The starting point is the magnifier as shipped in NVDA 2026.2.
 
+Throughout this document, native means the Windows Magnification API (`magnification.dll`) reached through `winBindings`. A "native call" is a call into that DLL, and a "native error" is the `OSError` it raises on failure. It never means anything else, such as C++ code in NVDA's own binaries.
+
 ---
 
 ## 1. Summary
