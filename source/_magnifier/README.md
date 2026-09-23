@@ -383,3 +383,29 @@ Small, self-contained fixes found while rereading the code for this document. No
 5. Clean up what does not match the current code: `FullScreenMagnifier.event_gainFocus` is never called (the magnifier is not an event plugin); the `toggleFullscreenMode` docstring still lists "border" among the current modes. `Magnifier._MARGIN_BORDER` is unused today but belongs to the postponed border mode: keep it, or remove it and add it back with the mode.
 6. Fix the error message of `createMagnifier`: it prints the `MagnifiedView` class instead of the received value.
 7. Expose public properties for the pan step and the tracking mode, and use them from the settings panel (technical debt item 2).
+
+---
+
+## 11. Where the discussion happened
+
+The reasoning behind the decisions above is written out in this document, so it can be read without leaving the repository. Two cases are the exception: options that were shipped and then taken out, and work that was attempted and never landed as such. For those, the argument lives in the pull request discussion, and the numbers below are the fastest way back to it.
+
+Shipped, then removed or replaced:
+
+| Decision | Introduced by | Removed or replaced by |
+| --- | --- | --- |
+| "True center" option (postponed, section 7.1) | #19593 | #20587 |
+| "Border" tracking mode (postponed, section 7.1) | #19228 | #20587 |
+| Blocking touch input while the magnifier runs | #20357 | #20612 |
+| "Keep mouse centered" option | #19228 | #20268, replaced by the command added in #20238 |
+| Magnification API initialized once per session | #20069 | #20342 |
+| Tracking the center of objects rather than their top-left corner | #19228 | #20313 |
+| Reading mouse button state with `getKeyState` | #19228 | #20052 |
+
+Attempts at the Fixed, Docked and Lens views:
+
+| Attempt | Outcome |
+| --- | --- |
+| #19473, then #19810: full implementation of the new views in one go | Too large to review as a whole, so they were not merged as such |
+| #19882: types and naming needed by the new views | Split out of the above and merged on its own |
+| #19915: view cycling and the empty shells | Split out of the above and merged on its own, which is why the shells exist today |
