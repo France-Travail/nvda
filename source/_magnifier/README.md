@@ -165,7 +165,7 @@ Each source keeps a "last valid position": a `(0, 0)` position is treated as inv
 
 ### 4.2 Configuration
 
-* **Never read `config.conf["magnifier"]` outside `config.py`.** Add a getter/setter in `config.py`, then use it everywhere (commands, panel, classes).
+* **Never read `config.conf["magnifier"]` outside `config.py`.** Add a getter/setter in `config.py`, then use it everywhere (commands, panel, classes). This is a magnifier convention, not an NVDA-wide rule: most of NVDA reads `config.conf` directly, which is fine. Here the indirection earns its place because nearly every value needs work on the way in or out: strings become enums (`Filter(...)`, `FullScreenMode(...)`), the zoom is validated against its range and its step of 50 before being written, and several settings are read on every pass of a loop that runs every 12 ms. It also keeps a single place to update when a key is renamed or removed, which has already happened twice.
 * Adding a key: `configSpec.py` (`[magnifier]` section), `config.py`, `MagnifierPanel`, the user guide.
 * **Removing or renaming a key: add a step in `profileUpgradeSteps.py`** and bump the schema version. See `upgradeConfigFrom_23_to_24`. Without a migration, existing profiles keep an invalid key.
 * Any setting changed by a gesture must be **persisted** (`setZoomLevel`, `setFilter`...), otherwise it is lost on restart.
